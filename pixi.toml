@@ -1,0 +1,18 @@
+[workspace]
+channels = ["conda-forge"]
+name = "prefect3 test"
+platforms = ["linux-64"]
+
+[dependencies]
+prefect = "3.*"
+tiled-client = ">0.1.b035"
+prefect-docker = "*"
+databroker = "*"
+h5py = "*"
+numpy = "*"
+pandas = "*"
+pillow = "*"
+scikit-image = "*"
+scipy = "*"
+tifffile = "*"
+tomopy = "*"
