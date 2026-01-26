@@ -1,4 +1,4 @@
-import databroker
+# import databroker
 import datetime
 import h5py
 import numpy as np
@@ -119,7 +119,7 @@ def bin_ndarray(ndarray, new_shape=None, operation="mean"):
 def export_scan(scan_id=-1, binning=4, filepath=""):
     # raster_2d_2 scan calls export_raster_2D function even though export_raster_2D_2 function exists.
     # Legacy functions do not exist yet.
-    tiled_client = databroker.from_profile("nsls2", username=None)["fxi"]["raw"]
+    # tiled_client = databroker.from_profile("nsls2", username=None)["fxi"]["raw"]
     run = tiled_client[scan_id]
     scan_type = run.start["plan_name"]
     export_function = (
