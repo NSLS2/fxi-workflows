@@ -14,8 +14,6 @@ from prefect import task, flow, get_run_logger
 from prefect.blocks.system import Secret
 from tiled.client import from_profile
 
-from area
-
 api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
 tiled_client = from_profile("nsls2", api_key=api_key)["fxi"]
 tiled_client_fxi = tiled_client["raw"]
