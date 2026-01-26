@@ -1,7 +1,6 @@
 from datetime import datetime
 import numpy as np
 import pandas as pd
-from databroker.assets.handlers import AreaDetectorHDF5TimestampHandler
 
 
 EPICS_EPOCH = datetime(1990, 1, 1, 0, 0)
@@ -12,11 +11,12 @@ def convert_AD_timestamps(ts):
         "US/Eastern"
     )
 
+
 def get_tomo_images(input_dict):
-    pos = input_dict['pos']
-    imgs = input_dict['imgs']
-    chunked_timestamps = input_dict['chunked_timestamps']
-    mot_pos = input_dict['mot_pos']
+    pos = input_dict["pos"]
+    imgs = input_dict["imgs"]
+    chunked_timestamps = input_dict["chunked_timestamps"]
+    mot_pos = input_dict["mot_pos"]
 
     raw_timestamps = []
     for chunk in chunked_timestamps:

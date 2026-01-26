@@ -1,14 +1,14 @@
 # import databroker
 import datetime
-# import h5py
-# import numpy as np
+import h5py
+import numpy as np
+import pandas as pd
 import os
-# import pandas as pd
 import re
 import httpx
 
 from pathlib import Path
-# from PIL import Image
+from PIL import Image
 from prefect import task, flow, get_run_logger
 
 from prefect.blocks.system import Secret
@@ -20,7 +20,6 @@ tiled_client_fxi = tiled_client["raw"]
 tiled_client_processed = tiled_client["sandbox"]
 
 
-
 @task
 def run_export_fxi(uid):
     start_doc = tiled_client_fxi[uid].start
@@ -30,7 +29,7 @@ def run_export_fxi(uid):
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
     export_scan(uid, filepath=lookup_directory(start_doc) / "exports" / str(scan_id))
-    #logger.info(f"Directory: {lookup_directory(start_doc)}")
+    # logger.info(f"Directory: {lookup_directory(start_doc)}")
 
 
 @flow
@@ -62,7 +61,7 @@ def lookup_directory(start_doc):
 
     # Filter out paths from other beamlines.
     paths = [path for path in paths if "fxi-new" == path.lower().split("/")[3]]
-    
+
     # Filter out paths from other cycles and paths for commissioning.
     paths = [
         path
@@ -74,6 +73,7 @@ def lookup_directory(start_doc):
     # There should be only one path remaining after these filters.
     # Convert it to a pathlib.Path.
     return Path(paths[0])
+
 
 def is_legacy(run):
     """
@@ -145,7 +145,7 @@ def bin_ndarray(ndarray, new_shape=None, operation="mean"):
         s1 = np.int32(s / 2)
         new_shape = tuple(s1)
     operation = operation.lower()
-    if not operation in ["sum", "mean"]:
+    if operation not in ["sum", "mean"]:
         raise ValueError("Operation not supported.")
     if ndarray.ndim != len(new_shape):
         raise ValueError("Shape mismatch: {} -> {}".format(ndarray.shape, new_shape))
@@ -172,9 +172,7 @@ def export_scan(uid, binning=4, filepath=""):
         raise RuntimeError(
             f"Export function {export_function} for scan type {scan_type} not found."
         )
-    #globals()[export_function](run, binning=binning, filepath=filepath)
-    logger = get_run_logger()
-    logger.info(f"File path : {export_function} and Filepath: {filepath}")
+    globals()[export_function](run, binning=binning, filepath=filepath)
 
 
 def export_tomo_scan(run, filepath="", **kwargs):
@@ -700,7 +698,7 @@ def export_multipos_count(run, filepath="", **kwargs):
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
         for i in range(num_of_position):
-            hf.create_dataset(f"img_pos{i+1}", data=np.squeeze(img_group[i]))
+            hf.create_dataset(f"img_pos{i + 1}", data=np.squeeze(img_group[i]))
 
 
 def export_grid2D_rel(run, filepath="", **kwargs):
@@ -776,7 +774,7 @@ def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
                 y_list[j] * pix * img_sizeY / 1000,
             ]
             pos_file.append(
-                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i]*pix*img_sizeX/1000:3.3f}\t\t{y_list[j]*pix*img_sizeY/1000:3.3f}\n"
+                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i] * pix * img_sizeX / 1000:3.3f}\t\t{y_list[j] * pix * img_sizeY / 1000:3.3f}\n"
             )
             index = index + 1
     s = img_patch.shape
@@ -853,7 +851,7 @@ def export_raster_2D(run, binning=4, filepath="", **kwargs):
                 y_list[j] * pix * img_sizeY / 1000,
             ]
             pos_file.append(
-                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i]*pix*img_sizeX/1000:3.3f}\t\t{y_list[j]*pix*img_sizeY/1000:3.3f}\n"
+                f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i] * pix * img_sizeX / 1000:3.3f}\t\t{y_list[j] * pix * img_sizeY / 1000:3.3f}\n"
             )
             index = index + 1
     s = img_patch.shape

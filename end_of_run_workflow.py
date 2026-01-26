@@ -6,7 +6,6 @@ from export import export
 
 import traceback
 
-from prefect import task, flow, get_run_logger
 from prefect.blocks.notifications import SlackWebhook
 from prefect.blocks.system import Secret
 from prefect.context import FlowRunContext
@@ -66,7 +65,6 @@ def slack(func):
             raise
 
     return end_of_run_workflow
-
 
 
 @task
