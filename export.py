@@ -173,6 +173,7 @@ def export_scan(uid, binning=4, filepath=""):
             f"Export function {export_function} for scan type {scan_type} not found."
         )
     #globals()[export_function](run, binning=binning, filepath=filepath)
+    logger = get_run_logger()
     logger.info(f"File path : {export_function} and Filepath: {filepath}")
 
 
