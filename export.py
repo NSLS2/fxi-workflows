@@ -248,7 +248,7 @@ def export_fly_scan(run, filepath, **kwargs):
     pxl_sz = 6500.0 / M
 
     x_eng = run.start["XEng"]
-    img_angle = get_fly_scan_angle(uid)
+    img_angle = get_fly_scan_angle(run)
     # TODO : Not sure how to get find_nearest function yet
     # id_stop = find_nearest(img_angle, img_angle[0]+relative_rot_angle-1) 
 
