@@ -14,6 +14,8 @@ from prefect import task, flow, get_run_logger
 from prefect.blocks.system import Secret
 from tiled.client import from_profile
 
+from area
+
 api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
 tiled_client = from_profile("nsls2", api_key=api_key)["fxi"]
 tiled_client_fxi = tiled_client["raw"]
@@ -88,17 +90,31 @@ def is_legacy(run):
 
 
 def get_fly_scan_angle(run):
+    det_name = run.start["detectors"][0]
+    timestamp_tomo = list(run["primary"]["data"][f"{det_name}_image"])[0]
 
-    logger = get_run_logger()
-    logger.info(f"Run params: {run["primary"]["data"]}")
-    
-    timestamp_tomo = list(run["primary"]["data"]["Andor_image"])[0]
+    #timestamp_dark = list(h.data(f"{det_name}_image", stream_name="dark"))[0]
+    #timestamp_bkg = list(h.data(f"{det_name}_image", stream_name="flat"))[0]
     assert "zps_pi_r_monitor" in run
     timestamp_mot = run["zps_pi_r_monitor"].read().coords["time"].values
+
     img_ini_timestamp = timestamp_tomo[0]
-    mot_ini_timestamp = timestamp_mot[
-        1
-    ]  # timestamp_mot[1] is the time when taking dark image
+
+    # something not correct in rotary stage. 
+    # we do following correction on 2023_5_16
+    # mot_ini_timestamp = timestamp_mot[1]  # timestamp_mot[1] is the time when taking dark image
+
+    n = len(timestamp_mot)
+    for idx in range(1, n):
+        ts1 = timestamp_mot[idx] - timestamp_mot[idx-1]
+        ts2 = timestamp_mot[idx+1] - timestamp_mot[idx]
+        #if ts1 < 0.25 and ts2 < 0.25:
+        #    break
+        if ts1 < 1 and ts2 < 1:
+            break
+    mot_ini_timestamp = timestamp_mot[idx]
+    ## end modifing
+
 
     tomo_time = timestamp_tomo - img_ini_timestamp
     mot_time = timestamp_mot - mot_ini_timestamp
@@ -214,33 +230,55 @@ def export_tomo_scan(run, filepath="", **kwargs):
         hf.create_dataset("angle", data=img_angle)
 
 
-def export_fly_scan(run, filepath="", **kwargs):
+def export_fly_scan(run, filepath, **kwargs):
+    det_name = run.start["detectors"][0]
     uid = run.start["uid"]
     note = run.start["note"]
     scan_type = "fly_scan"
     scan_id = run.start["scan_id"]
     scan_time = run.start["time"]
+
     x_pos = run["baseline"]["data"]["zps_sx"][1].item()
     y_pos = run["baseline"]["data"]["zps_sy"][1].item()
     z_pos = run["baseline"]["data"]["zps_sz"][1].item()
     r_pos = run["baseline"]["data"]["zps_pi_r"][1].item()
+    relative_rot_angle = run.start['plan_args']['relative_rot_angle']
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
+
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
     pxl_sz = 6500.0 / M
 
     x_eng = run.start["XEng"]
-    img_angle = get_fly_scan_angle(run)
+    img_angle = get_fly_scan_angle(uid)
+    # TODO : Not sure how to get find_nearest function yet
+    # id_stop = find_nearest(img_angle, img_angle[0]+relative_rot_angle-1) 
 
 
-    img_tomo = np.array(list(run["primary"]["data"]["Andor_image"]))[0]
-    img_dark = np.array(list(run["dark"]["data"]["Andor_image"]))[0]
-    img_bkg = np.array(list(run["flat"]["data"]["Andor_image"]))[0]
+    img_tomo = np.array(list(run["primary"]["data"][f"{det_name}_image"]))[0]
+    img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
+    img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
+
+    #tmp = list(run.data(f"{det_name}_image", stream_name="primary"))[0]
+    #img_tomo = np.array(tmp[:len(img_angle)])
+    #s = img_tomo.shape
+    #try:
+    #    img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))[0]
+    #except:
+    #    img_dark = np.zeros((1, s[1], s[2]))
+    #try:
+    #    img_bkg = np.array(list(h.data(f"{det_name}_image", stream_name="flat")))[0]
+    #except:
+    #    img_bkg = np.ones((1, s[1], s[2]))
 
     img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
     img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
 
-    filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    # TODO : id_stop is calculated in find_nearest which we will figure out later
+    # img_tomo = img_tomo[:id_stop] 
+    # img_angle = img_angle[:id_stop] 
+
+    filename = filepath / scan_type + "_id_" + str(scan_id) + ".h5"
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("note", data=str(note))
@@ -259,8 +297,13 @@ def export_fly_scan(run, filepath="", **kwargs):
         hf.create_dataset("z_ini", data=z_pos)
         hf.create_dataset("r_ini", data=r_pos)
         hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
-
+        hf.create_dataset("Pixel Size", data=pxl_sz)
+    """
+    try:
+        write_lakeshore_to_file(h, filename)
+    except:
+        print("fails to write lakeshore info into {filename}")
+    """
 
 def export_fly_scan2(run, filepath="", **kwargs):
     uid = run.start["uid"]
