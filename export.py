@@ -20,8 +20,8 @@ tiled_client_processed = tiled_client["sandbox"]
 
 @task
 def run_export_fxi(uid):
-    scan_id = tiled_client[uid].start["scan_id"]
-    scan_type = tiled_client[uid].start["plan_name"]
+    scan_id = tiled_client_fxi[uid].start["scan_id"]
+    scan_type = tiled_client_fxi[uid].start["plan_name"]
     logger = get_run_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
@@ -120,7 +120,7 @@ def export_scan(scan_id=-1, binning=4, filepath=""):
     # raster_2d_2 scan calls export_raster_2D function even though export_raster_2D_2 function exists.
     # Legacy functions do not exist yet.
     # tiled_client = databroker.from_profile("nsls2", username=None)["fxi"]["raw"]
-    run = tiled_client[scan_id]
+    run = tiled_client_fxi[scan_id]
     scan_type = run.start["plan_name"]
     export_function = (
         f"export_{scan_type}_legacy" if is_legacy(run) else f"export_{scan_type}"
