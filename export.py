@@ -18,20 +18,60 @@ tiled_client_fxi = tiled_client["raw"]
 tiled_client_processed = tiled_client["sandbox"]
 
 
+
 @task
 def run_export_fxi(uid):
-    scan_id = tiled_client_fxi[uid].start["scan_id"]
-    scan_type = tiled_client_fxi[uid].start["plan_name"]
+    start_doc = tiled_client_fxi[uid].start
+    scan_id = start_doc["scan_id"]
+    scan_type = start_doc["plan_name"]
     logger = get_run_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
-    #export_scan(uid, filepath="/nsls2/data/data/dssi/scratch/prefect-outputs/fxi")
+    #export_scan(uid, filepath=lookup_directory(start_doc))
+    logger.info(f"Directory: {lookup_directory(start_doc)}")
 
 
 @flow
 def export(uid):
     run_export_fxi(uid)
 
+
+def lookup_directory(start_doc):
+    """
+    Return the path for the proposal directory.
+
+    PASS gives us a *list* of cycles, and we have created a proposal directory under each cycle.
+    """
+    DATA_SESSION_PATTERN = re.compile("[GUPCpass]*-([0-9]+)")
+    client = httpx.Client(base_url="https://api.nsls2.bnl.gov")
+    data_session = start_doc[
+        "data_session"
+    ]  # works on old-style Header or new-style BlueskyRun
+
+    try:
+        digits = int(DATA_SESSION_PATTERN.match(data_session).group(1))
+    except AttributeError:
+        raise AttributeError(f"incorrect data_session: {data_session}")
+
+    response = client.get(f"/v1/proposal/{digits}/directories")
+    response.raise_for_status()
+
+    paths = [path_info["path"] for path_info in response.json()["directories"]]
+
+    # Filter out paths from other beamlines.
+    paths = [path for path in paths if "fxi-new" == path.lower().split("/")[3]]
+    
+    # Filter out paths from other cycles and paths for commissioning.
+    paths = [
+        path
+        for path in paths
+        if path.lower().split("/")[5] == "commissioning"
+        or path.lower().split("/")[5] == start_doc["cycle"]
+    ]
+
+    # There should be only one path remaining after these filters.
+    # Convert it to a pathlib.Path.
+    return Path(paths[0])
 
 def is_legacy(run):
     """
@@ -116,11 +156,11 @@ def bin_ndarray(ndarray, new_shape=None, operation="mean"):
     return ndarray
 
 
-def export_scan(scan_id=-1, binning=4, filepath=""):
+def export_scan(uid, binning=4, filepath=""):
     # raster_2d_2 scan calls export_raster_2D function even though export_raster_2D_2 function exists.
     # Legacy functions do not exist yet.
     # tiled_client = databroker.from_profile("nsls2", username=None)["fxi"]["raw"]
-    run = tiled_client_fxi[scan_id]
+    run = tiled_client_fxi[uid]
     scan_type = run.start["plan_name"]
     export_function = (
         f"export_{scan_type}_legacy" if is_legacy(run) else f"export_{scan_type}"
