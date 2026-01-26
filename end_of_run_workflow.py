@@ -5,14 +5,14 @@ from export import export
 
 
 @task
-def log_completion():
+def log_completion(uid):
     logger = get_run_logger()
-    logger.info("Complete")
+    logger.info(f"Complete: {uid}")
 
 
 @flow
 def end_of_run_workflow(stop_doc):
     uid = stop_doc["run_start"]
     # general_data_validation(uid)
-    export(uid)
-    log_completion()
+    # export(uid)
+    log_completion(uid)
