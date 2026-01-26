@@ -29,8 +29,8 @@ def run_export_fxi(uid):
     logger = get_run_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
-    #export_scan(uid, filepath=lookup_directory(start_doc))
-    logger.info(f"Directory: {lookup_directory(start_doc)}")
+    export_scan(uid, filepath=lookup_directory(start_doc) / "exports" / scan_id)
+    #logger.info(f"Directory: {lookup_directory(start_doc)}")
 
 
 @flow
@@ -172,7 +172,8 @@ def export_scan(uid, binning=4, filepath=""):
         raise RuntimeError(
             f"Export function {export_function} for scan type {scan_type} not found."
         )
-    globals()[export_function](run, binning=binning, filepath=filepath)
+    #globals()[export_function](run, binning=binning, filepath=filepath)
+    logger.info(f"File path : {export_function} and Filepath: {filepath}")
 
 
 def export_tomo_scan(run, filepath="", **kwargs):
