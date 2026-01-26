@@ -9,16 +9,23 @@ from pathlib import Path
 from PIL import Image
 from prefect import task, flow, get_run_logger
 
+from prefect.blocks.system import Secret
+from tiled.client import from_profile
+
+api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
+tiled_client = from_profile("nsls2", api_key=api_key)["fxi"]
+tiled_client_fxi = tiled_client["raw"]
+tiled_client_processed = tiled_client["sandbox"]
+
 
 @task
 def run_export_fxi(uid):
-    tiled_client = databroker.from_profile("nsls2")["fxi"]["raw"]
     scan_id = tiled_client[uid].start["scan_id"]
     scan_type = tiled_client[uid].start["plan_name"]
     logger = get_run_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
-    export_scan(uid, filepath="/nsls2/data/data/dssi/scratch/prefect-outputs/fxi")
+    #export_scan(uid, filepath="/nsls2/data/data/dssi/scratch/prefect-outputs/fxi")
 
 
 @flow
