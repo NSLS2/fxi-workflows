@@ -228,6 +228,9 @@ def export_fly_scan(run, filepath="", **kwargs):
     x_eng = run.start["XEng"]
     img_angle = get_fly_scan_angle(run)
 
+    logger = get_run_logger()
+    logger.info(f"Run params: {run["primary"]["data"]}")
+
     img_tomo = np.array(list(run["primary"]["data"]["Andor_image"]))[0]
     img_dark = np.array(list(run["dark"]["data"]["Andor_image"]))[0]
     img_bkg = np.array(list(run["flat"]["data"]["Andor_image"]))[0]
