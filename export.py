@@ -229,6 +229,9 @@ def export_tomo_scan(run, filepath="", **kwargs):
 
 
 def export_fly_scan(run, filepath, **kwargs):
+    logger = get_run_logger()
+    logger.info(f"Run keys": {run.keys()}")
+
     det_name = run.start["detectors"][0]
     uid = run.start["uid"]
     note = run.start["note"]
@@ -252,7 +255,7 @@ def export_fly_scan(run, filepath, **kwargs):
     # TODO : Not sure how to get find_nearest function yet
     # id_stop = find_nearest(img_angle, img_angle[0]+relative_rot_angle-1) 
 
-
+    logger.info(f"primary->data keys": {run["primary"]["data"].keys()}")
     img_tomo = np.array(list(run["primary"]["data"][f"{det_name}_image"]))[0]
     img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
     img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
