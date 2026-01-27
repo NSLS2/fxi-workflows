@@ -102,35 +102,29 @@ def is_legacy(run):
 
 def get_fly_scan_angle(run):
     det_name = run.start["detectors"][0]
-    timestamp_tomo = list(run["primary"]["data"][f"{det_name}_image"])[0]
+    # Per-frame AD timestamps stored as {det_name}_timestamps
+    timestamp_tomo = np.array(list(run["primary"]["data"][f"{det_name}_timestamps"]))[0]
 
-    #timestamp_dark = list(h.data(f"{det_name}_image", stream_name="dark"))[0]
-    #timestamp_bkg = list(h.data(f"{det_name}_image", stream_name="flat"))[0]
     assert "zps_pi_r_monitor" in run
-    timestamp_mot = run["zps_pi_r_monitor"].read().coords["time"].values
+    monitor = run["zps_pi_r_monitor"].read()
+    timestamp_mot = monitor.coords["time"].values.astype("float64")
 
     img_ini_timestamp = timestamp_tomo[0]
 
-    # something not correct in rotary stage. 
+    # something not correct in rotary stage.
     # we do following correction on 2023_5_16
-    # mot_ini_timestamp = timestamp_mot[1]  # timestamp_mot[1] is the time when taking dark image
-
     n = len(timestamp_mot)
     for idx in range(1, n):
         ts1 = timestamp_mot[idx] - timestamp_mot[idx-1]
         ts2 = timestamp_mot[idx+1] - timestamp_mot[idx]
-        #if ts1 < 0.25 and ts2 < 0.25:
-        #    break
         if ts1 < 1 and ts2 < 1:
             break
     mot_ini_timestamp = timestamp_mot[idx]
-    ## end modifing
-
 
     tomo_time = timestamp_tomo - img_ini_timestamp
     mot_time = timestamp_mot - mot_ini_timestamp
 
-    mot_pos = np.array(run["zps_pi_r_monitor"].read()["zps_pi_r"])
+    mot_pos = np.array(monitor["zps_pi_r"])
     mot_pos_interp = np.interp(tomo_time, mot_time, mot_pos)
 
     img_angle = mot_pos_interp
@@ -263,31 +257,26 @@ def export_fly_scan(run, filepath, **kwargs):
 
     x_eng = run.start["XEng"]
     img_angle = get_fly_scan_angle(run)
-    # TODO : Not sure how to get find_nearest function yet
-    # id_stop = find_nearest(img_angle, img_angle[0]+relative_rot_angle-1) 
+    img_angle = np.array(img_angle)
+    id_stop = np.abs(img_angle - (img_angle[0] + relative_rot_angle - 1)).argmin()
 
-    img_tomo = np.array(list(run["primary"]["data"][f"{det_name}_image"]))[0]
-    img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
-    img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
+    img_tomo = np.array(list(run["primary"]["data"][f"{det_name}_image"]))[0][:len(img_angle)]
 
-    #tmp = list(run.data(f"{det_name}_image", stream_name="primary"))[0]
-    #img_tomo = np.array(tmp[:len(img_angle)])
-    #s = img_tomo.shape
-    #try:
-    #    img_dark = np.array(list(h.data(f"{det_name}_image", stream_name="dark")))[0]
-    #except:
-    #    img_dark = np.zeros((1, s[1], s[2]))
-    #try:
-    #    img_bkg = np.array(list(h.data(f"{det_name}_image", stream_name="flat")))[0]
-    #except:
-    #    img_bkg = np.ones((1, s[1], s[2]))
+    s = img_tomo.shape
+    try:
+        img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
+    except:
+        img_dark = np.zeros((1, s[1], s[2]))
+    try:
+        img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
+    except:
+        img_bkg = np.ones((1, s[1], s[2]))
 
     img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
     img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
 
-    # TODO : id_stop is calculated in find_nearest which we will figure out later
-    # img_tomo = img_tomo[:id_stop] 
-    # img_angle = img_angle[:id_stop] 
+    img_tomo = img_tomo[:id_stop]
+    img_angle = img_angle[:id_stop]
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
 
