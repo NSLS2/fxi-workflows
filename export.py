@@ -874,7 +874,6 @@ def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
 
 
 def export_raster_2D(run, binning=4, filepath="", **kwargs):
-    import tifffile
     from skimage import io
 
     det_name = run.start["detectors"][0]
@@ -971,8 +970,8 @@ def export_raster_2D(run, binning=4, filepath="", **kwargs):
         img_patch_bin = img_patch
         binning = 1
 
-    fout_tiff = filepath + f"raster2D_scan_{scan_id}_binning_{binning}.tiff"
-    fout_txt = filepath + f"raster2D_scan_{scan_id}_cord.txt"
+    fout_tiff = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_binning_{binning}.tiff")
+    fout_txt = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_cord.txt")
     print(f"{pos_file_for_print}")
     with open(f"{fout_txt}", "w+") as f:
         f.writelines(pos_file)
