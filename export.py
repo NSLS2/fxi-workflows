@@ -14,10 +14,23 @@ from prefect import task, flow, get_run_logger
 from prefect.blocks.system import Secret
 from tiled.client import from_profile
 
-api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
-tiled_client = from_profile("nsls2", api_key=api_key)["fxi"]
-tiled_client_fxi = tiled_client["raw"]
-tiled_client_processed = tiled_client["sandbox"]
+try:
+    api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
+    tiled_client = from_profile("nsls2", api_key=api_key)["fxi"]
+    tiled_client_fxi = tiled_client["raw"]
+    tiled_client_processed = tiled_client["sandbox"]
+except Exception:
+    tiled_client = None
+    tiled_client_fxi = None
+    tiled_client_processed = None
+
+
+def _get_logger():
+    try:
+        return get_run_logger()
+    except Exception:
+        import logging
+        return logging.getLogger(__name__)
 
 
 @task
@@ -25,7 +38,7 @@ def run_export_fxi(uid):
     start_doc = tiled_client_fxi[uid].start
     scan_id = start_doc["scan_id"]
     scan_type = start_doc["plan_name"]
-    logger = get_run_logger()
+    logger = _get_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
     export_scan(uid, filepath=lookup_directory(start_doc) / "exports" / str(scan_id))
@@ -90,9 +103,10 @@ def is_legacy(run):
 def get_fly_scan_angle(run):
     det_name = run.start["detectors"][0]
 
-    logger = get_run_logger()
+    logger = _get_logger()
     logger.info(f"primary->data in get_fly_scan_angle: {run["primary"]["data"].keys()}")
-
+    breakpoint()
+    
     timestamp_tomo = list(run["primary"]["data"][f"{det_name}_image"])[0]
 
     #timestamp_dark = list(h.data(f"{det_name}_image", stream_name="dark"))[0]
