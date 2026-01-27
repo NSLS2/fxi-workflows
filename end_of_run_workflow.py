@@ -16,7 +16,7 @@ from prefect.blocks.notifications import SlackWebhook
 from prefect.blocks.system import Secret
 from prefect.context import FlowRunContext
 
-from tiled.client import from_profile
+from tiled.client import from_profile, from_uri
 
 CATALOG_NAME = "fxi"
 
@@ -88,7 +88,6 @@ def end_of_run_workflow(stop_doc):
     log_completion(uid)
 
 
-@flow
 def end_of_run_workflow_local(uid, output_dir="/tmp/exports"):
     import logging
     from pathlib import Path
@@ -98,7 +97,7 @@ def end_of_run_workflow_local(uid, output_dir="/tmp/exports"):
 
     # Login to tiled with username/password (will prompt interactively).
     logger.info("Connecting to tiled (will prompt for credentials)...")
-    tiled_client = from_profile("nsls2")[CATALOG_NAME]
+    tiled_client = from_uri("https://tiled.nsls2.bnl.gov")[CATALOG_NAME]
     tiled_client_fxi = tiled_client["raw"]
 
     # Override the tiled clients in the export module so export functions use them.
