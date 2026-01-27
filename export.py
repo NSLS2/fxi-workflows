@@ -102,11 +102,6 @@ def is_legacy(run):
 
 def get_fly_scan_angle(run):
     det_name = run.start["detectors"][0]
-
-    logger = _get_logger()
-    logger.info(f"primary->data in get_fly_scan_angle: {run["primary"]["data"].keys()}")
-    breakpoint()
-    
     timestamp_tomo = list(run["primary"]["data"][f"{det_name}_image"])[0]
 
     #timestamp_dark = list(h.data(f"{det_name}_image", stream_name="dark"))[0]
@@ -271,7 +266,6 @@ def export_fly_scan(run, filepath, **kwargs):
     # TODO : Not sure how to get find_nearest function yet
     # id_stop = find_nearest(img_angle, img_angle[0]+relative_rot_angle-1) 
 
-    #logger.info(f"primary->data in export_fly_scankeys: {run["primary"]["data"].keys()}")
     img_tomo = np.array(list(run["primary"]["data"][f"{det_name}_image"]))[0]
     img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
     img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
@@ -295,7 +289,7 @@ def export_fly_scan(run, filepath, **kwargs):
     # img_tomo = img_tomo[:id_stop] 
     # img_angle = img_angle[:id_stop] 
 
-    filename = filepath / scan_type + "_id_" + str(scan_id) + ".h5"
+    filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("note", data=str(note))
