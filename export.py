@@ -201,6 +201,7 @@ def export_scan(uid, binning=4, filepath=""):
 
 
 def export_tomo_scan(run, filepath="", **kwargs):
+    det_name = run.start["detectors"][0]
     scan_type = "tomo_scan"
     scan_id = run.start["scan_id"]
     try:
@@ -210,13 +211,10 @@ def export_tomo_scan(run, filepath="", **kwargs):
     angle_i = run.start["plan_args"]["start"]
     angle_e = run.start["plan_args"]["stop"]
     angle_n = run.start["plan_args"]["num"]
-    img = np.array(list(run["primary"]["data"]["Andor_image"]))
-    img = np.array(list(run["primary"]["data"]["Andor_image"]))
+    img = np.array(list(run["primary"]["data"][f"{det_name}_image"]))
     img_tomo = np.median(img, axis=1)
-    img = np.array(list(run["dark"]["data"]["Andor_image"]))[0]
-    img_dark = np.array(list(run["dark"]["data"]["Andor_image"]))[0]
-    img = np.array(list(run["flat"]["data"]["Andor_image"]))[0]
-    img_bkg = np.array(list(run["flat"]["data"]["Andor_image"]))[0]
+    img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
+    img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
 
     img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
     img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
@@ -236,7 +234,13 @@ def export_tomo_scan(run, filepath="", **kwargs):
 
 
 def export_fly_scan(run, filepath, **kwargs):
+    """Export fly scan data to HDF5.
 
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     det_name = run.start["detectors"][0]
     uid = run.start["uid"]
     note = run.start["note"]
@@ -306,6 +310,7 @@ def export_fly_scan(run, filepath, **kwargs):
     """
 
 def export_fly_scan2(run, filepath="", **kwargs):
+    det_name = run.start["detectors"][0]
     uid = run.start["uid"]
     note = run.start["note"]
     scan_type = "fly_scan2"
@@ -320,73 +325,17 @@ def export_fly_scan2(run, filepath="", **kwargs):
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
     pxl_sz = 6500.0 / M
 
-    try:
-        x_eng = run.start["XEng"]
-    except Exception:
-        x_eng = run.start["x_ray_energy"]
-    # sanity check: make sure we remembered the right stream name
-    assert "zps_pi_r_monitor" in run
-    pos = run["zps_pi_r_monitor"].read()
-    img_dark = np.array(list(run["primary"]["data"]["Andor_image"])[-1][:])
-    img_bkg = np.array(list(run["primary"]["data"]["Andor_image"])[-2][:])
-    s = img_dark.shape
-    img_dark_avg = np.mean(img_dark, axis=0).reshape(1, s[1], s[2])
-    img_bkg_avg = np.mean(img_bkg, axis=0).reshape(1, s[1], s[2])
+    x_eng = run.start["XEng"]
+    img_angle = get_fly_scan_angle(run)
 
-    imgs = np.array(list(run["primary"]["data"]["Andor_image"])[:-2])
-    s1 = imgs.shape
-    imgs = imgs.reshape([s1[0] * s1[1], s1[2], s1[3]])
+    img_tomo = np.array(list(run["primary"]["data"][f"{det_name}_image"]))[0]
+    img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
+    img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
 
-    chunked_timestamps = list(run["primary"]["data"]["Andor_image"])[:-2]
+    img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
+    img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
 
-    raw_timestamps = []
-    for chunk in chunked_timestamps:
-        raw_timestamps.extend(chunk.tolist())
-
-    timestamps = convert_AD_timestamps(pd.Series(raw_timestamps))
-    pos["time"] = pos["time"].dt.tz_localize("US/Eastern")
-
-    img_day, img_hour = (
-        timestamps.dt.day,
-        timestamps.dt.hour,
-    )
-    img_min, img_sec, img_msec = (
-        timestamps.dt.minute,
-        timestamps.dt.second,
-        timestamps.dt.microsecond,
-    )
-    img_time = (
-        img_day * 86400 + img_hour * 3600 + img_min * 60 + img_sec + img_msec * 1e-6
-    )
-    img_time = np.array(img_time)
-
-    mot_day, mot_hour = (
-        pos["time"].dt.day,
-        pos["time"].dt.hour,
-    )
-    mot_min, mot_sec, mot_msec = (
-        pos["time"].dt.minute,
-        pos["time"].dt.second,
-        pos["time"].dt.microsecond,
-    )
-    mot_time = (
-        mot_day * 86400 + mot_hour * 3600 + mot_min * 60 + mot_sec + mot_msec * 1e-6
-    )
-    mot_time = np.array(mot_time)
-
-    mot_pos = np.array(pos["zps_pi_r"])
-    offset = np.min([np.min(img_time), np.min(mot_time)])
-    img_time -= offset
-    mot_time -= offset
-    mot_pos_interp = np.interp(img_time, mot_time, mot_pos)
-
-    pos2 = mot_pos_interp.argmax() + 1
-    # img_angle = mot_pos_interp[: pos2 - chunk_size]  # rotation angles
-    img_angle = mot_pos_interp[:pos2]
-    # img_tomo = imgs[: pos2 - chunk_size]  # tomo images
-    img_tomo = imgs[:pos2]
-
-    filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    filename = os.path.join(os.path.abspath(filepath), f"fly_scan_id_{scan_id}.h5")
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("note", data=str(note))
@@ -409,6 +358,14 @@ def export_fly_scan2(run, filepath="", **kwargs):
 
 
 def export_xanes_scan(run, filepath="", **kwargs):
+    """Export XANES scan data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
+    det_name = run.start["detectors"][0]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
@@ -419,11 +376,11 @@ def export_xanes_scan(run, filepath="", **kwargs):
     scan_id = run.start["scan_id"]
     scan_time = run.start["time"]
 
-    img_xanes = np.array(list(run["primary"]["data"]["Andor_image"]))
+    img_xanes = np.array(list(run["primary"]["data"][f"{det_name}_image"]))
     img_xanes_avg = np.mean(img_xanes, axis=1)
-    img_dark = np.array(list(run["dark"]["data"]["Andor_image"]))
+    img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))
     img_dark_avg = np.mean(img_dark, axis=1)
-    img_bkg = np.array(list(run["flat"]["data"]["Andor_image"]))
+    img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))
     img_bkg_avg = np.mean(img_bkg, axis=1)
 
     eng_list = list(run.start["eng_list"])
@@ -488,6 +445,14 @@ def export_xanes_scan_img_only(run, filepath="", **kwargs):
 
 
 def export_z_scan(run, filepath="", **kwargs):
+    """Export Z scan data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
+    det_name = run.start["detectors"][0]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
@@ -501,10 +466,9 @@ def export_z_scan(run, filepath="", **kwargs):
         x_eng = run.start["x_ray_energy"]
     num = run.start["plan_args"]["steps"]
     note = run.start["plan_args"]["note"] if run.start["plan_args"]["note"] else "None"
-    img = np.array(list(run["primary"]["data"]["Andor_image"]))
-    img_zscan = np.mean(img[:num], axis=1)
-    img_bkg = np.mean(img[num], axis=0, keepdims=True)
-    img_dark = np.mean(img[-1], axis=0, keepdims=True)
+    img_zscan = np.mean(np.array(list(run["primary"]["data"][f"{det_name}_image"])), axis=1)
+    img_bkg = np.mean(np.array(list(run["flat"]["data"][f"{det_name}_image"])), axis=1).squeeze()
+    img_dark = np.mean(np.array(list(run["dark"]["data"][f"{det_name}_image"])), axis=1).squeeze()
     img_norm = (img_zscan - img_dark) / (img_bkg - img_dark)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
@@ -572,6 +536,14 @@ def export_z_scan2(run, filepath="", **kwargs):
 
 
 def export_test_scan(run, filepath="", **kwargs):
+    """Export test scan data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
+    det_name = run.start["detectors"][0]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
@@ -580,19 +552,41 @@ def export_test_scan(run, filepath="", **kwargs):
     scan_type = run.start["plan_name"]
     scan_id = run.start["scan_id"]
     uid = run.start["uid"]
+    note = run.start["note"]
+    scan_time = run.start["time"]
     try:
         x_eng = run.start["XEng"]
     except Exception:
         x_eng = run.start["x_ray_energy"]
     num = run.start["plan_args"]["num_img"]
-    num_bkg = run.start["plan_args"]["num_bkg"]
-    note = run.start["plan_args"]["note"] if run.start["plan_args"]["note"] else "None"
-    img = np.squeeze(np.array(list(run["primary"]["data"]["Andor_image"])))
-    assert len(img.shape) == 3, "load test_scan fails..."
-    img_test = img[:num]
-    img_bkg = np.mean(img[num : num + num_bkg], axis=0, keepdims=True)
-    img_dark = np.mean(img[-num_bkg:], axis=0, keepdims=True)
-    img_norm = (img_test - img_dark) / (img_bkg - img_dark)
+
+    img_list = list(run["primary"]["data"][f"{det_name}_image"])
+    n = len(img_list)
+    for i in range(n - 1, 0, -1):
+        try:
+            img = np.array(img_list[:i])[:, 0]
+        except Exception:
+            continue
+        break
+    if i < n:
+        print(f"few images are lost, only {i}/{n} images saved")
+
+    try:
+        img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
+        img_dark_avg = np.median(img_dark, axis=0, keepdims=True)
+    except Exception:
+        img_dark = np.zeros((1, img.shape[1], img.shape[2]))
+        img_dark_avg = img_dark
+        print("img dark not taken")
+    try:
+        img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
+        img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
+    except Exception:
+        img_bkg = np.zeros((1, img.shape[1], img.shape[2]))
+        img_bkg_avg = img_bkg
+        print("img background not taken")
+
+    img_norm = (img - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
     img_norm[np.isnan(img_norm)] = 0
     img_norm[np.isinf(img_norm)] = 0
 
@@ -601,11 +595,71 @@ def export_test_scan(run, filepath="", **kwargs):
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
         hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("X_eng", data=x_eng)
         hf.create_dataset("note", data=str(note))
-        hf.create_dataset("img_bkg", data=img_bkg)
-        hf.create_dataset("img_dark", data=img_dark)
-        hf.create_dataset("img", data=np.array(img_test, dtype=np.float32))
+        hf.create_dataset("scan_time", data=scan_time)
+        hf.create_dataset("X_eng", data=x_eng)
+        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+        hf.create_dataset("img", data=np.array(img, dtype=np.float32))
+        hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
+        hf.create_dataset("Magnification", data=M)
+        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+
+
+def export_test_scan2(run, filepath="", **kwargs):
+    """Export test scan 2 data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
+    det_name = run.start["detectors"][0]
+    zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
+    DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    pxl_sz = 6500.0 / M
+
+    scan_type = run.start["plan_name"]
+    scan_id = run.start["scan_id"]
+    uid = run.start["uid"]
+    note = run.start["note"]
+    scan_time = run.start["time"]
+    try:
+        x_eng = run.start["XEng"]
+    except Exception:
+        x_eng = run.start["x_ray_energy"]
+    num = run.start["plan_args"]["num_img"]
+
+    img = np.array(list(run["primary"]["data"][f"{det_name}_image"]))[0]
+    try:
+        img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
+        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True)
+    except Exception:
+        img_dark = np.zeros((1, img.shape[1], img.shape[2]))
+        img_dark_avg = img_dark
+    try:
+        img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
+        img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True)
+    except Exception:
+        img_bkg = np.ones((1, img.shape[1], img.shape[2]))
+        img_bkg_avg = img_bkg
+
+    img_norm = (img - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
+    img_norm[np.isnan(img_norm)] = 0
+    img_norm[np.isinf(img_norm)] = 0
+
+    filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+
+    with h5py.File(filename, "w") as hf:
+        hf.create_dataset("uid", data=uid)
+        hf.create_dataset("scan_id", data=scan_id)
+        hf.create_dataset("note", data=str(note))
+        hf.create_dataset("scan_time", data=scan_time)
+        hf.create_dataset("X_eng", data=x_eng)
+        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+        hf.create_dataset("img", data=np.array(img, dtype=np.float32))
         hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
@@ -853,12 +907,18 @@ def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_raster_2D(run, binning=4, filepath="", **kwargs):
-    import tifffile
+def export_raster_2D(run, binning=4, filepath="", reverse=False, **kwargs):
+    """Export raster 2D scan data to HDF5 and TIFF.
 
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
+    from skimage import io
+
+    det_name = run.start["detectors"][0]
     scan_id = run.start["scan_id"]
-    num_dark = run.start["num_dark_images"]
-    num_bkg = run.start["num_bkg_images"]
     x_eng = run.start["XEng"]
     x_range = run.start["plan_args"]["x_range"]
     y_range = run.start["plan_args"]["y_range"]
@@ -866,31 +926,73 @@ def export_raster_2D(run, binning=4, filepath="", **kwargs):
     img_sizeY = run.start["plan_args"]["img_sizeY"]
     pix = run.start["plan_args"]["pxl"]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
+    rot_angle = run["baseline"]["data"]["zps_pi_r"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
     pxl_sz = 6500.0 / M
 
-    img_raw = np.squeeze(np.array(list(run["primary"]["data"]["Andor_image"])))
-    img_dark_avg = np.mean(img_raw[:num_dark], axis=0, keepdims=True)
-    img_bkg_avg = np.mean(img_raw[-num_bkg:], axis=0, keepdims=True)
-    img = img_raw[num_dark:-num_bkg]
+    scan_x_flag = run.start["plan_args"]["scan_x_flag"]
+    if scan_x_flag:
+        pix = pix * np.cos(rot_angle / 180.0 * np.pi)
+    else:
+        pix = pix * np.sin(rot_angle / 180.0 * np.pi)
+
+    img_raw = np.array(list(run["primary"]["data"][f"{det_name}_image"]))
+    img = np.mean(img_raw, axis=1)
     s = img.shape
+    try:
+        img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))[0]
+        img_dark_avg = np.mean(img_dark, axis=0, keepdims=True)
+    except Exception:
+        img_dark_avg = np.zeros((1, *s[1:]))
+    try:
+        img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))[0]
+        img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True)
+    except Exception:
+        img_bkg_avg = np.ones((1, *s[1:]))
+
+    if reverse:
+        img = img[:, ::-1, ::-1]
+        img_dark_avg = img_dark_avg[:, ::-1, ::-1]
+        img_bkg_avg = img_bkg_avg[:, ::-1, ::-1]
+
     img = (img - img_dark_avg) / (img_bkg_avg - img_dark_avg)
     x_num = round((x_range[1] - x_range[0]) + 1)
     y_num = round((y_range[1] - y_range[0]) + 1)
+
+    # start stitching
+    if pix > pxl_sz:
+        warn_msg = f"warning: the setpoint pixel size used in scan ({pix:3.2f} nm) should be smaller than actual pixel size ({pxl_sz:3.2f} nm)"
+        pix = pxl_sz
+    else:
+        warn_msg = ""
+
+    frac = np.round(pix / pxl_sz, 2)
+    rl = int(s[1] * frac)
+    rs = s[1] / 2 * (1 - frac)
+    rs = int(max(0, rs))
+    re = rs + rl
+    re = int(min(re, s[1]))
+
+    cl = int(s[2] * frac)
+    cs = s[2] / 2 * (1 - frac)
+    cs = int(max(0, cs))
+    ce = cs + cl
+    ce = int(min(ce, s[2]))
+
     x_list = np.linspace(x_range[0], x_range[1], x_num)
     y_list = np.linspace(y_range[0], y_range[1], y_num)
-    row_size = y_num * s[1]
-    col_size = x_num * s[2]
+    row_size = y_num * rl
+    col_size = x_num * cl
     img_patch = np.zeros([1, row_size, col_size])
-    index = 0
+
     pos_file_for_print = np.zeros([x_num * y_num, 4])
     pos_file = ["cord_x\tcord_y\tx_pos_relative\ty_pos_relative\n"]
     index = 0
     for i in range(int(x_num)):
         for j in range(int(y_num)):
-            img_patch[0, j * s[1] : (j + 1) * s[1], i * s[2] : (i + 1) * s[2]] = img[
-                index
+            img_patch[0, j * rl : (j + 1) * rl, i * cl : (i + 1) * cl] = img[
+                index, rs:re, cs:ce
             ]
             pos_file_for_print[index] = [
                 x_list[i],
@@ -902,16 +1004,26 @@ def export_raster_2D(run, binning=4, filepath="", **kwargs):
                 f"{x_list[i]:3.0f}\t{y_list[j]:3.0f}\t{x_list[i] * pix * img_sizeX / 1000:3.3f}\t\t{y_list[j] * pix * img_sizeY / 1000:3.3f}\n"
             )
             index = index + 1
-    s = img_patch.shape
-    img_patch_bin = bin_ndarray(
-        img_patch, new_shape=(1, int(s[1] / binning), int(s[2] / binning))
-    )
-    fout_tiff = filepath + f"raster2D_scan_{scan_id}_binning_{binning}.tiff"
-    fout_txt = filepath + f"raster2D_scan_{scan_id}_cord.txt"
+            print(i, j, index)
+    s_patch = img_patch.shape
+    try:
+        s_bin = (s_patch[0], s_patch[1] // binning * binning, s_patch[2] // binning * binning)
+        img_patch_bin = bin_ndarray(
+            img_patch[:, : int(s_bin[1]), : int(s_bin[2])],
+            new_shape=(s_bin[0], int(s_bin[1] // binning), int(s_bin[2] // binning)),
+        )
+    except Exception:
+        img_patch_bin = img_patch
+        binning = 1
+
+    fout_tiff = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_binning_{binning}.tiff")
+    fout_txt = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_cord.txt")
     print(f"{pos_file_for_print}")
     with open(f"{fout_txt}", "w+") as f:
         f.writelines(pos_file)
-    tifffile.imsave(fout_tiff, np.array(img_patch_bin, dtype=np.float32))
+    io.imsave(fout_tiff, np.array(img_patch_bin[0], dtype=np.float32))
+    num_img = int(x_num) * int(y_num)
+    print(warn_msg)
 
     folder_name = os.path.join(os.path.abspath(filepath), f"raster_scan_{scan_id}")
     Path(folder_name).mkdir(parents=True, exist_ok=True)
@@ -928,42 +1040,53 @@ def export_raster_2D(run, binning=4, filepath="", **kwargs):
 
 
 def export_multipos_2D_xanes_scan2(run, filepath="", **kwargs):
+    """Export multipos 2D XANES scan 2 data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
+    det_name = run.start["detectors"][0]
     scan_type = run.start["plan_name"]
     uid = run.start["uid"]
     note = run.start["note"]
     scan_id = run.start["scan_id"]
     scan_time = run.start["time"]
-    #    x_eng = run.start['x_ray_energy']
     num_eng = run.start["num_eng"]
     num_pos = run.start["num_pos"]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
     pxl_sz = 6500.0 / M
-    try:
-        repeat_num = run.start["plan_args"]["repeat_num"]
-    except Exception:
-        repeat_num = 1
-    img_xanes = np.array(list(run["primary"]["data"]["Andor_image"]))
-    img_dark = np.array(list(run["dark"]["data"]["Andor_image"]))
-    img_bkg = np.array(list(run["flat"]["data"]["Andor_image"]))
-    img_xanes = np.mean(img_xanes, axis=1)
-    img_dark = np.mean(img_dark, axis=1)
-    img_bkg = np.mean(img_bkg, axis=1)
+
+    img_xanes = np.array(list(run["primary"]["data"][f"{det_name}_image"]))
+    img_dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))
+    img_bkg = np.array(list(run["flat"]["data"][f"{det_name}_image"]))
+
+    img_xanes = np.median(img_xanes, axis=1)
+    img_dark = np.median(img_dark, axis=1)
+    img_bkg = np.median(img_bkg, axis=1)
+
     eng_list = list(run.start["eng_list"])
 
-    for repeat in range(repeat_num):  # revised here
-        print(f"repeat: {repeat}")
-        id_s = int(repeat * num_eng)
-        id_e = int((repeat + 1) * num_eng)
-        img_x = img_xanes[id_s * num_pos : id_e * num_pos]  # xanes image
-        img_b = img_bkg[id_s:id_e]  # bkg image
-        for j in range(num_pos):
-            img_p = img_x[j::num_pos]
-            img_p_n = (img_p - img_dark) / (img_b - img_dark)
-            name = f"{scan_type}_id_{scan_id}_repeat_{repeat:02d}_pos_{j:02d}.h5"
-            filename = os.path.join(os.path.abspath(filepath), name)
+    len_img = len(img_xanes)
+    len_bkg = len(img_bkg)
 
+    idx = int(len_img // num_pos)
+
+    id_end = int(min(idx, len_bkg) * num_pos)
+    img_xanes = img_xanes[:id_end]
+    eng_list = eng_list[:id_end]
+
+    for j in range(num_pos):
+        img = img_xanes[j::num_pos]
+        img_n = (img - img_dark) / (img_bkg - img_dark)
+        name = f"{scan_type}_id_{scan_id}_pos_{j:02d}.h5"
+        filename = os.path.join(os.path.abspath(filepath), name)
+
+        try:
+            print(f"saving {filename}")
             with h5py.File(filename, "w") as hf:
                 hf.create_dataset("uid", data=uid)
                 hf.create_dataset("scan_id", data=scan_id)
@@ -972,9 +1095,11 @@ def export_multipos_2D_xanes_scan2(run, filepath="", **kwargs):
                 hf.create_dataset("X_eng", data=eng_list)
                 hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
                 hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
-                hf.create_dataset("img_xanes", data=np.array(img_p_n, dtype=np.float32))
+                hf.create_dataset("img_xanes", data=np.array(img_n, dtype=np.float32))
                 hf.create_dataset("Magnification", data=M)
                 hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+        except Exception as err:
+            print(err)
 
 
 def export_multipos_2D_xanes_scan3(run, filepath="", **kwargs):
