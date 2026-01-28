@@ -234,7 +234,13 @@ def export_tomo_scan(run, filepath="", **kwargs):
 
 
 def export_fly_scan(run, filepath, **kwargs):
+    """Export fly scan data to HDF5.
 
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     det_name = run.start["detectors"][0]
     uid = run.start["uid"]
     note = run.start["note"]
@@ -352,6 +358,13 @@ def export_fly_scan2(run, filepath="", **kwargs):
 
 
 def export_xanes_scan(run, filepath="", **kwargs):
+    """Export XANES scan data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     det_name = run.start["detectors"][0]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
@@ -432,6 +445,13 @@ def export_xanes_scan_img_only(run, filepath="", **kwargs):
 
 
 def export_z_scan(run, filepath="", **kwargs):
+    """Export Z scan data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     det_name = run.start["detectors"][0]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
@@ -516,6 +536,13 @@ def export_z_scan2(run, filepath="", **kwargs):
 
 
 def export_test_scan(run, filepath="", **kwargs):
+    """Export test scan data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     det_name = run.start["detectors"][0]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
@@ -580,6 +607,13 @@ def export_test_scan(run, filepath="", **kwargs):
 
 
 def export_test_scan2(run, filepath="", **kwargs):
+    """Export test scan 2 data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     det_name = run.start["detectors"][0]
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
@@ -874,6 +908,13 @@ def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
 
 
 def export_raster_2D(run, binning=4, filepath="", reverse=False, **kwargs):
+    """Export raster 2D scan data to HDF5 and TIFF.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     from skimage import io
 
     det_name = run.start["detectors"][0]
@@ -999,6 +1040,13 @@ def export_raster_2D(run, binning=4, filepath="", reverse=False, **kwargs):
 
 
 def export_multipos_2D_xanes_scan2(run, filepath="", **kwargs):
+    """Export multipos 2D XANES scan 2 data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
     det_name = run.start["detectors"][0]
     scan_type = run.start["plan_name"]
     uid = run.start["uid"]
