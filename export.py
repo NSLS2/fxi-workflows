@@ -221,6 +221,7 @@ def export_tomo_scan(run, filepath="", **kwargs):
     img_angle = np.linspace(angle_i, angle_e, angle_n)
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("scan_id", data=scan_id)
@@ -283,6 +284,7 @@ def export_fly_scan(run, filepath, **kwargs):
     img_angle = img_angle[:id_stop]
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("note", data=str(note))
@@ -302,12 +304,7 @@ def export_fly_scan(run, filepath, **kwargs):
         hf.create_dataset("r_ini", data=r_pos)
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=pxl_sz)
-    """
-    try:
-        write_lakeshore_to_file(h, filename)
-    except:
-        print("fails to write lakeshore info into {filename}")
-    """
+
 
 def export_fly_scan2(run, filepath="", **kwargs):
     det_name = run.start["detectors"][0]
@@ -336,6 +333,7 @@ def export_fly_scan2(run, filepath="", **kwargs):
     img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
 
     filename = os.path.join(os.path.abspath(filepath), f"fly_scan_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("note", data=str(note))
@@ -390,6 +388,8 @@ def export_xanes_scan(run, filepath="", **kwargs):
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
         hf.create_dataset("scan_id", data=scan_id)
@@ -430,6 +430,7 @@ def export_xanes_scan_img_only(run, filepath="", **kwargs):
     filename = os.path.join(
         os.path.abspath(filepath), f"{scan_type}_id_{scan_id}_img_only.h5"
     )
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
@@ -474,6 +475,7 @@ def export_z_scan(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
@@ -515,6 +517,7 @@ def export_z_scan2(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
@@ -591,6 +594,7 @@ def export_test_scan(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
@@ -650,6 +654,7 @@ def export_test_scan2(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
@@ -684,6 +689,7 @@ def export_count(run, filepath="", **kwargs):
     img = get_img(run, det)
     scan_id = run.start["scan_id"]
     filename = os.path.join(filepath, f"count_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("img", data=img.astype(np.float32))
@@ -713,6 +719,7 @@ def export_delay_count(run, filepath="", **kwargs):
     img = get_img(run, det)
 
     filename = os.path.join(filepath, f"count_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("img", data=img.astype(np.float32))
@@ -743,6 +750,7 @@ def export_delay_scan(run, filepath="", **kwargs):
         filename = os.path.join(
             os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5"
         )
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
         with h5py.File(filename, "w") as hf:
             hf.create_dataset("img", data=np.array(img, dtype=np.float32))
@@ -792,6 +800,7 @@ def export_multipos_count(run, filepath="", **kwargs):
             img_group[i, j] = (tmp_img - img_dark_avg) / (tmp_bkg - img_dark_avg)
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("uid", data=uid)
@@ -884,6 +893,7 @@ def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
         img_patch, new_shape=(1, int(s[1] / binning), int(s[2] / binning))
     )
     scan_id = run.start["scan_id"]
+    Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
     fout_tiff = filepath + f"raster2D_scan_{scan_id}_binning_{binning}.tiff"
     fout_txt = filepath + f"raster2D_scan_{scan_id}_cord.txt"
     print(f"{pos_file_for_print}")
@@ -1016,6 +1026,7 @@ def export_raster_2D(run, binning=4, filepath="", reverse=False, **kwargs):
         img_patch_bin = img_patch
         binning = 1
 
+    Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
     fout_tiff = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_binning_{binning}.tiff")
     fout_txt = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_cord.txt")
     print(f"{pos_file_for_print}")
@@ -1079,6 +1090,8 @@ def export_multipos_2D_xanes_scan2(run, filepath="", **kwargs):
     img_xanes = img_xanes[:id_end]
     eng_list = eng_list[:id_end]
 
+    Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
+
     for j in range(num_pos):
         img = img_xanes[j::num_pos]
         img_n = (img - img_dark) / (img_bkg - img_dark)
@@ -1133,6 +1146,8 @@ def export_multipos_2D_xanes_scan3(run, filepath="", **kwargs):
     for i in range(num_eng):
         for j in range(num_pos):
             img_xanes[j, i] = (img_xanes[j, i] - img_dark) / (img_bkg[i] - img_dark)
+    Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
+
     for j in range(num_pos):
         filename = os.path.join(
             os.path.abspath(filepath), f"{scan_type}_id_{scan_id}_pos_{j}.h5"
@@ -1230,6 +1245,7 @@ def export_user_fly_only(run, filepath="", **kwargs):
     img_tomo = imgs[: pos2 - chunk_size]  # tomo images
 
     filename = os.path.join(os.path.abspath(filepath), f"fly_scan_id_{scan_id}.h5")
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("note", data=str(note))
