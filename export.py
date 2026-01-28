@@ -873,7 +873,7 @@ def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_raster_2D(run, binning=4, filepath="", **kwargs):
+def export_raster_2D(run, binning=4, filepath="", reverse=False, **kwargs):
     from skimage import io
 
     det_name = run.start["detectors"][0]
@@ -909,6 +909,11 @@ def export_raster_2D(run, binning=4, filepath="", **kwargs):
         img_bkg_avg = np.mean(img_bkg, axis=0, keepdims=True)
     except Exception:
         img_bkg_avg = np.ones((1, *s[1:]))
+
+    if reverse:
+        img = img[:, ::-1, ::-1]
+        img_dark_avg = img_dark_avg[:, ::-1, ::-1]
+        img_bkg_avg = img_bkg_avg[:, ::-1, ::-1]
 
     img = (img - img_dark_avg) / (img_bkg_avg - img_dark_avg)
     x_num = round((x_range[1] - x_range[0]) + 1)
