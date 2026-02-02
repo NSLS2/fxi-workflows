@@ -84,7 +84,7 @@ def log_completion(uid):
 def end_of_run_workflow(stop_doc):
     uid = stop_doc["run_start"]
     # general_data_validation(uid)
-    export(uid)
+    #export(uid)
     log_completion(uid)
 
 
