@@ -403,6 +403,10 @@ def export_xanes_scan(run, filepath="", **kwargs):
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
+def export_xanes_scan2(run, filepath="", **kwargs):
+    export_xanes_scan(run, filepath="", **kwargs)
+
+
 def export_xanes_scan_img_only(run, filepath="", **kwargs):
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
