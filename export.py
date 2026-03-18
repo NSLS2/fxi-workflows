@@ -42,7 +42,7 @@ def run_export_fxi(uid):
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
     export_scan(uid, filepath=lookup_directory(start_doc) / "exports" / str(scan_id))
-    # logger.info(f"Directory: {lookup_directory(start_doc)}")
+    logger.info(f"Directory: {lookup_directory(start_doc)}")
 
 
 @flow
