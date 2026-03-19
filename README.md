@@ -7,7 +7,7 @@ Repository of workflows for the FXI beamline.
 Run the exporter:
 
 ```bash
-pixi run exporter <scan_id_or_uid> [output_dir]
+pixi run exporter <scan_id | uid | scan_id_range> [output_dir]
 ```
 
 Examples:
@@ -15,6 +15,7 @@ Examples:
 ```bash
 exporter 12345                            # by scan_id
 exporter "02b93a93-43cf-..."              # by uid
+exporter 12345-12350                      # by scan_id range (inclusive)
 exporter 12345 /tmp/exports               # custom output directory
 ```
 

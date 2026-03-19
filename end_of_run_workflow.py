@@ -88,8 +88,9 @@ def end_of_run_workflow(stop_doc):
     log_completion(uid)
 
 
-def end_of_run_workflow_local(scan_id_or_uid, output_dir=None):
+def end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=None):
     import logging
+    import re
     from pathlib import Path
 
     logging.basicConfig(level=logging.INFO)
@@ -106,26 +107,33 @@ def end_of_run_workflow_local(scan_id_or_uid, output_dir=None):
     export_module.tiled_client_fxi = tiled_client_fxi
     export_module.tiled_client_processed = tiled_client["sandbox"]
 
-    # Look up run by scan_id (int) or uid (string).
-    try:
-        key = int(scan_id_or_uid)
-    except ValueError:
-        key = scan_id_or_uid
-    start_doc = tiled_client_fxi[key].start
-    uid = start_doc["uid"]
-    scan_id = start_doc["scan_id"]
-    scan_type = start_doc["plan_name"]
-
-    if output_dir is None:
-        filepath = export_module.lookup_directory(start_doc) / "exports"
+    # Parse input: scan_id range (e.g., "12345-12350"), scan_id (int), or uid (string).
+    range_match = re.match(r"^(\d+)-(\d+)$", scan_id_or_uid_or_range)
+    if range_match:
+        start_id, end_id = int(range_match.group(1)), int(range_match.group(2))
+        keys = list(range(start_id, end_id + 1))
     else:
-        filepath = Path(output_dir).resolve()
-    filepath.mkdir(parents=True, exist_ok=True)
+        try:
+            keys = [int(scan_id_or_uid_or_range)]
+        except ValueError:
+            keys = [scan_id_or_uid_or_range]
 
-    logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
-    export_module.export_scan(uid, filepath=filepath)
-    logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
-    print(f"\nExport complete: {filepath}/{scan_type}_id_{scan_id}.h5")
+    for key in keys:
+        start_doc = tiled_client_fxi[key].start
+        uid = start_doc["uid"]
+        scan_id = start_doc["scan_id"]
+        scan_type = start_doc["plan_name"]
+
+        if output_dir is None:
+            filepath = export_module.lookup_directory(start_doc) / "exports"
+        else:
+            filepath = Path(output_dir).resolve()
+        filepath.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
+        export_module.export_scan(uid, filepath=filepath)
+        logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
+        print(f"\nExport complete: {filepath}/{scan_type}_id_{scan_id}.h5")
 
 
 def main():
@@ -137,12 +145,12 @@ def main():
     os.environ.pop("PREFECT_API_KEY", None)
 
     if len(sys.argv) < 2:
-        print("Usage: exporter <scan_id_or_uid> [output_dir]")
+        print("Usage: exporter <scan_id | uid | scan_id_range> [output_dir]")
         sys.exit(1)
 
-    scan_id_or_uid = sys.argv[1]
+    scan_id_or_uid_or_range = sys.argv[1]
     output_dir = sys.argv[2] if len(sys.argv) > 2 else None
-    end_of_run_workflow_local(scan_id_or_uid, output_dir=output_dir)
+    end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=output_dir)
 
 
 if __name__ == "__main__":
