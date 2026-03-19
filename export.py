@@ -384,7 +384,7 @@ def export_xanes_scan(run, filepath="", **kwargs):
 
     eng_list = list(run.start["eng_list"])
 
-    img_xanes_norm = (img_xanes_avg - img_dark_avg) * 1.0 / (img_bkg_avg - img_dark_avg)
+    img_xanes_norm = ((img_xanes_avg - img_dark_avg) * 1.0) / (img_bkg_avg - img_dark_avg)
     img_xanes_norm[np.isnan(img_xanes_norm)] = 0
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0
 
@@ -404,9 +404,8 @@ def export_xanes_scan(run, filepath="", **kwargs):
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-
 def export_xanes_scan2(run, filepath="", **kwargs):
-    export_xanes_scan(run, filepath="", **kwargs)
+    export_xanes_scan(run, filepath=filepath, **kwargs)
 
 
 def export_xanes_scan_img_only(run, filepath="", **kwargs):
