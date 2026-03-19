@@ -119,6 +119,7 @@ def end_of_run_workflow_local(uid, output_dir=None):
     logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
     export_module.export_scan(uid, filepath=filepath)
     logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
+    print(f"\nExport complete: {filepath}")
 
 
 def main():
