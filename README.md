@@ -4,12 +4,6 @@ Repository of workflows for the FXI beamline.
 
 ## Running the Exporter Locally
 
-Install dependencies:
-
-```bash
-pixi install
-```
-
 Run the exporter:
 
 ```bash
