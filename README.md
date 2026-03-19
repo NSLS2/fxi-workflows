@@ -4,42 +4,27 @@ Repository of workflows for the FXI beamline.
 
 ## Running the Exporter Locally
 
-First, install dependencies:
+Install dependencies:
 
 ```bash
 pixi install
 ```
 
-Then from the project directory:
+Run the exporter:
 
 ```bash
 pixi run exporter <uid> [output_dir]
 ```
 
-For example:
+Output defaults to `/tmp/exports` if not specified.
+
+### System-wide installation
+
+Create `/usr/local/bin/exporter`:
 
 ```bash
-pixi run exporter 02b93a93-43cf-45ad-8fda-792c1373dcec /tmp/exports
+#!/bin/bash
+cd /path/to/fxi-workflows && pixi run exporter "$@"
 ```
 
-If `output_dir` is omitted, it defaults to `/tmp/exports`.
-
-### Running from anywhere
-
-Use the `-m` flag to specify the manifest path:
-
-```bash
-pixi run -m /path/to/fxi-workflows/pixi.toml exporter <uid>
-```
-
-Or add an alias to your shell config (`~/.zshrc` or `~/.bashrc`):
-
-```bash
-alias exporter='pixi run -m /path/to/fxi-workflows/pixi.toml exporter'
-```
-
-Then run from anywhere:
-
-```bash
-exporter <uid>
-```
+Then `chmod +x /usr/local/bin/exporter`.

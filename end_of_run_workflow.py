@@ -88,7 +88,7 @@ def end_of_run_workflow(stop_doc):
     log_completion(uid)
 
 
-def end_of_run_workflow_local(uid, output_dir="/tmp/exports"):
+def end_of_run_workflow_local(uid, output_dir=None):
     import logging
     from pathlib import Path
 
@@ -106,10 +106,14 @@ def end_of_run_workflow_local(uid, output_dir="/tmp/exports"):
     export_module.tiled_client_fxi = tiled_client_fxi
     export_module.tiled_client_processed = tiled_client["sandbox"]
 
-    # Look up scan_id and build local output path.
+    # Look up scan_id and build output path.
     start_doc = tiled_client_fxi[uid].start
     scan_id = start_doc["scan_id"]
-    filepath = Path(output_dir) / str(scan_id)
+
+    if output_dir is None:
+        filepath = export_module.lookup_directory(start_doc) / "exports" / str(scan_id)
+    else:
+        filepath = Path(output_dir) / str(scan_id)
     filepath.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
@@ -130,7 +134,7 @@ def main():
         sys.exit(1)
 
     uid = sys.argv[1]
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "/tmp/exports"
+    output_dir = sys.argv[2] if len(sys.argv) > 2 else None
     end_of_run_workflow_local(uid, output_dir=output_dir)
 
 
