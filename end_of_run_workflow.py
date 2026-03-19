@@ -76,7 +76,7 @@ def slack(func):
 @task
 def log_completion(uid):
     logger = get_run_logger()
-    logger.info(f"Complete: {uid}")
+    logger.info(f"Export of bluesky run complete. {uid=}")
 
 
 @flow
