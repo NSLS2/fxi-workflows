@@ -16,7 +16,7 @@ Run the exporter:
 pixi run exporter <uid> [output_dir]
 ```
 
-Output defaults to `/tmp/exports` if not specified.
+Output defaults to the proposal directory (`<proposal>/exports/`).
 
 ### System-wide installation
 
