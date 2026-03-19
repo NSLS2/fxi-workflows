@@ -30,7 +30,12 @@ Create `/usr/local/bin/exporter`:
 
 ```bash
 #!/bin/bash
-cd /path/to/fxi-workflows && pixi run exporter "$@"
+if [ -n "$2" ]; then
+    output_path="$(realpath -m "$2")"
+    cd /nsls2/data/fxi-new/shared/config/bluesky/fxi-workflows && pixi run exporter "$1" "$output_path"
+else
+    cd /nsls2/data/fxi-new/shared/config/bluesky/fxi-workflows && pixi run exporter "$1"
+fi
 ```
 
 Then `chmod +x /usr/local/bin/exporter`.
