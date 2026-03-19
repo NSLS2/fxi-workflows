@@ -41,8 +41,9 @@ def run_export_fxi(uid):
     logger = _get_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
-    export_scan(uid, filepath=lookup_directory(start_doc) / "exports" / str(scan_id))
-    logger.info(f"Directory: {lookup_directory(start_doc)}")
+    output_directory = lookup_directory(start_doc) / "exports" / str(scan_id)
+    export_scan(uid, filepath=output_directory)
+    logger.info(f"{output_directory =}")
 
 
 @flow
@@ -401,6 +402,7 @@ def export_xanes_scan(run, filepath="", **kwargs):
         hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
         hf.create_dataset("Magnification", data=M)
         hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+
 
 
 def export_xanes_scan2(run, filepath="", **kwargs):
