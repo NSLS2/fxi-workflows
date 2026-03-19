@@ -119,7 +119,7 @@ def end_of_run_workflow_local(scan_id_or_uid, output_dir=None):
     if output_dir is None:
         filepath = export_module.lookup_directory(start_doc) / "exports"
     else:
-        filepath = Path(output_dir)
+        filepath = Path(output_dir).resolve()
     filepath.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
