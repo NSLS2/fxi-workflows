@@ -88,7 +88,7 @@ def end_of_run_workflow(stop_doc):
     log_completion(uid)
 
 
-def end_of_run_workflow_local(uid, output_dir=None):
+def end_of_run_workflow_local(scan_id_or_uid, output_dir=None):
     import logging
     from pathlib import Path
 
@@ -106,8 +106,13 @@ def end_of_run_workflow_local(uid, output_dir=None):
     export_module.tiled_client_fxi = tiled_client_fxi
     export_module.tiled_client_processed = tiled_client["sandbox"]
 
-    # Look up scan_id and build output path.
-    start_doc = tiled_client_fxi[uid].start
+    # Look up run by scan_id (int) or uid (string).
+    try:
+        key = int(scan_id_or_uid)
+    except ValueError:
+        key = scan_id_or_uid
+    start_doc = tiled_client_fxi[key].start
+    uid = start_doc["uid"]
     scan_id = start_doc["scan_id"]
     scan_type = start_doc["plan_name"]
 
@@ -132,12 +137,12 @@ def main():
     os.environ.pop("PREFECT_API_KEY", None)
 
     if len(sys.argv) < 2:
-        print("Usage: exporter <uid> [output_dir]")
+        print("Usage: exporter <scan_id_or_uid> [output_dir]")
         sys.exit(1)
 
-    uid = sys.argv[1]
+    scan_id_or_uid = sys.argv[1]
     output_dir = sys.argv[2] if len(sys.argv) > 2 else None
-    end_of_run_workflow_local(uid, output_dir=output_dir)
+    end_of_run_workflow_local(scan_id_or_uid, output_dir=output_dir)
 
 
 if __name__ == "__main__":

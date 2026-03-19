@@ -13,7 +13,7 @@ pixi install
 Run the exporter:
 
 ```bash
-pixi run exporter <uid> [output_dir]
+pixi run exporter <scan_id_or_uid> [output_dir]
 ```
 
 Output defaults to the proposal directory (`<proposal>/exports/`).
