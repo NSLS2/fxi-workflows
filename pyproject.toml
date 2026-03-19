@@ -1,3 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fxi-workflows"
+version = "0.1.0"
+
+[project.scripts]
+exporter = "end_of_run_workflow:main"
+
 [tool.black]
 line-length = 88
 exclude = '''

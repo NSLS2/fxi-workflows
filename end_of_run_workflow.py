@@ -117,13 +117,22 @@ def end_of_run_workflow_local(uid, output_dir="/tmp/exports"):
     logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
 
 
-if __name__ == "__main__":
+def main():
+    import os
     import sys
 
+    # Clear Prefect Cloud env vars so the flow runs locally.
+    os.environ.pop("PREFECT_API_URL", None)
+    os.environ.pop("PREFECT_API_KEY", None)
+
     if len(sys.argv) < 2:
-        print("Usage: python end_of_run_workflow.py <uid> [output_dir]")
+        print("Usage: exporter <uid> [output_dir]")
         sys.exit(1)
 
     uid = sys.argv[1]
     output_dir = sys.argv[2] if len(sys.argv) > 2 else "/tmp/exports"
     end_of_run_workflow_local(uid, output_dir=output_dir)
+
+
+if __name__ == "__main__":
+    main()
