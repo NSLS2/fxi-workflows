@@ -41,7 +41,7 @@ def run_export_fxi(uid):
     logger = _get_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
-    output_directory = lookup_directory(start_doc) / "exports" / str(scan_id)
+    output_directory = lookup_directory(start_doc) / "exports"
     export_scan(uid, filepath=output_directory)
     logger.info(f"{output_directory =}")
 
