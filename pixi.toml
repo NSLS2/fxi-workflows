@@ -8,7 +8,7 @@ exporter = "python end_of_run_workflow.py"
 
 [dependencies]
 prefect = "3.*"
-python = "<3.14"
+python = "<3.13"
 bluesky-tiled-plugins = ">=2"
 prefect-docker = "*"
 tiled-client = ">=0.2.3"
