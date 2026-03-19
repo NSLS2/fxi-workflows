@@ -109,6 +109,7 @@ def end_of_run_workflow_local(uid, output_dir=None):
     # Look up scan_id and build output path.
     start_doc = tiled_client_fxi[uid].start
     scan_id = start_doc["scan_id"]
+    scan_type = start_doc["plan_name"]
 
     if output_dir is None:
         filepath = export_module.lookup_directory(start_doc) / "exports"
@@ -119,7 +120,7 @@ def end_of_run_workflow_local(uid, output_dir=None):
     logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
     export_module.export_scan(uid, filepath=filepath)
     logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
-    print(f"\nExport complete: {filepath}")
+    print(f"\nExport complete: {filepath}/{scan_type}_id_{scan_id}.h5")
 
 
 def main():
