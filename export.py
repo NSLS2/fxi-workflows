@@ -1365,3 +1365,184 @@ def export_scan_change_expo_time(
         hf.create_dataset("XEng", data=x_eng)
         hf.create_dataset("pos_x", data=pos_x)
         hf.create_dataset("pos_y", data=pos_y)
+
+
+def export_tomo_zfly(run, filepath="", **kwargs):
+    """Export tomo zfly scan data to HDF5.
+
+    Note: The exporter in the profile code calls write_lakeshore_to_file() to record
+    lakeshore temperature data. This is not implemented here because lakeshore
+    data is not available via the tiled API. If temperature logging is needed,
+    this will need to be reimplemented.
+    """
+    uid = run.start["uid"]
+    note = run.start["note"]
+    det_name = run.start["detectors"][0]
+    scan_mode = run.start["plan_args"]["scan_mode"]
+    exp_t = run.start["plan_args"]["exposure_time"]
+    acq_period = run.start["plan_args"]["acquisition_period"]
+    rot_velo = run.start["plan_args"]["slew_speed"]
+    rot_acceleration = run.start["plan_args"]["acceleration"]
+    ang_start = run.start["plan_args"]["start_angle"]
+    ang_end = run.start["plan_args"]["end_angle"]
+    flts = run.start["plan_args"]["filters"]
+    binning = run.start["plan_args"]["binning"]
+    num_swing = run.start["plan_args"]["number_of_swings"]
+    sleep = run.start["plan_args"]["sleep"]
+    scan_type = run.start["plan_name"]
+    scan_id = run.start["scan_id"]
+    scan_time = str(datetime.datetime.fromtimestamp(run.start["time"]))
+
+    x_pos = run["baseline"]["data"]["zps_sx"][1].item()
+    y_pos = run["baseline"]["data"]["zps_sy"][1].item()
+    z_pos = run["baseline"]["data"]["zps_sz"][1].item()
+    r_pos = run["baseline"]["data"]["zps_pi_r"][1].item()
+    zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
+    DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
+    M = (DetU_z_pos / zp_z_pos - 1) * 10.0
+    if binning == 0:
+        pxl_sz = 6500.0 / M
+    elif binning == 1:
+        pxl_sz = 2 * 6500.0 / M
+    elif binning == 2:
+        pxl_sz = 3 * 6500.0 / M
+    elif binning == 3:
+        pxl_sz = 4 * 6500.0 / M
+    elif binning == 4:
+        pxl_sz = 8 * 6500.0 / M
+    x_eng = round(run.start["XEng"], 4)
+
+    if scan_mode in [0, 1, 2]:
+        try:
+            dark = np.array(list(run["dark"]["data"][f"{det_name}_image"]))
+        except Exception:
+            dark = None
+
+        try:
+            flat = np.array(list(run["flat"]["data"][f"{det_name}_image"]))
+        except Exception:
+            flat = None
+
+        try:
+            data = np.array(list(run["primary"]["data"][f"{det_name}_image"]))
+        except Exception:
+            data = None
+
+        if data is None:
+            print("There is no tomo data in the scan. Skip")
+        else:
+            angle = np.array(list(run["primary"]["data"]["enc1_pi_r"]))
+            print(f"{data.shape=}, {angle.shape=}")
+            data_shp = data.shape
+            a = np.array(list(run["primary"]["data"][f"{det_name}_timestamps"]))
+            z = np.array(list(run["primary"]["data"]["zebra_time"]))
+
+            for ii in range(num_swing):
+                if num_swing == 1:
+                    fname = os.path.join(
+                        os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5"
+                    )
+                else:
+                    fname = os.path.join(
+                        os.path.abspath(filepath),
+                        f"{scan_type}_id_{scan_id}-{str(ii).zfill(3)}.h5",
+                    )
+                Path(fname).parent.mkdir(parents=True, exist_ok=True)
+
+                with h5py.File(fname, "w") as hf:
+                    hl00 = hf.create_group("Experiment")
+                    hl01 = hf.create_group("Exchange")
+
+                    hl00.create_dataset("scan mode", data=scan_mode)
+                    hl00.create_dataset("detector", data=det_name)
+                    hl00.create_dataset("X_eng (keV)", data=x_eng)
+                    hl00.create_dataset("exposure time (sec)", data=exp_t)
+                    hl00.create_dataset("acquisition period (sec)", data=acq_period)
+                    hl00.create_dataset("slew velocity (deg/sec)", data=rot_velo)
+                    hl00.create_dataset("slew acceleration (sec)", data=rot_acceleration)
+                    hl00.create_dataset("start angle (deg)", data=ang_start)
+                    hl00.create_dataset("end angle (deg)", data=ang_end)
+                    hl00.create_dataset("filters", data=flts)
+                    hl00.create_dataset("binning", data=binning)
+                    hl00.create_dataset("sleep (sec)", data=sleep)
+                    hl00.create_dataset("number of swings", data=num_swing)
+                    hl00.create_dataset("swing #", data=ii)
+                    hl00.create_dataset("note", data=str(note))
+                    hl00.create_dataset("uid", data=uid)
+                    hl00.create_dataset("scan_id", data=int(scan_id))
+                    hl00.create_dataset("scan_time", data=scan_time)
+                    hl00.create_dataset("x_ini", data=x_pos)
+                    hl00.create_dataset("y_ini", data=y_pos)
+                    hl00.create_dataset("z_ini", data=z_pos)
+                    hl00.create_dataset("r_ini", data=r_pos)
+                    hl00.create_dataset("Magnification", data=M)
+                    hl00.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
+
+                    if scan_mode == 0:
+                        if dark is None:
+                            hl01.create_dataset("dark", data="None")
+                        else:
+                            hl01.create_dataset(
+                                "dark",
+                                data=np.array(dark[ii], dtype=np.uint16),
+                                dtype=np.uint16,
+                            )
+
+                        if flat is None:
+                            hl01.create_dataset("flat", data="None")
+                        else:
+                            hl01.create_dataset(
+                                "flat",
+                                data=np.array(flat[ii], dtype=np.uint16),
+                                dtype=np.uint16,
+                            )
+                    elif scan_mode == 1:
+                        if dark is None:
+                            hl01.create_dataset("dark", data="None")
+                        else:
+                            hl01.create_dataset(
+                                "dark",
+                                data=np.squeeze(np.array(dark, dtype=np.uint16)),
+                                dtype=np.uint16,
+                            )
+
+                        if flat is None:
+                            hl01.create_dataset("flat", data="None")
+                        else:
+                            hl01.create_dataset(
+                                "flat",
+                                data=np.squeeze(np.array(flat, dtype=np.uint16)),
+                                dtype=np.uint16,
+                            )
+
+                    td = hl01.create_dataset(
+                        "data", shape=data_shp[1:], dtype=np.uint16
+                    )
+                    for jj in range(int(np.ceil(data_shp[1] / 1000.0))):
+                        td[jj * 1000 : min((jj + 1) * 1000, data_shp[1]), :] = np.array(
+                            data[ii, jj * 1000 : min((jj + 1) * 1000, data_shp[1]), :],
+                            dtype=np.uint16,
+                        )
+
+                    print(f"{data_shp=}, {angle.shape=}\n{a.shape=}, {z.shape=}")
+                    print(angle[ii].shape[0], data[ii].shape[0])
+                    if angle[ii].shape[0] > data[ii].shape[0]:
+                        a[ii] -= a[ii, 0]
+                        z[ii] -= z[ii, 0]
+                        ed = np.array(
+                            list(enumerate(np.diff(a[ii] - z[ii, : a[ii].shape[0]])))
+                        )
+                        ed = ed[np.argsort(ed[:, 1])]
+                        ga = np.ones(z[ii].shape[0], dtype=np.bool_)
+                        for kk in range(z[ii].shape[0] - a[ii].shape[0]):
+                            ga[int(ed[kk, 0])] = False
+                    else:
+                        ga = np.ones(angle[ii].shape[0], dtype=np.bool_)
+
+                    hl01.create_dataset(
+                        "angle",
+                        data=np.array(angle[ii][ga], dtype=np.float32),
+                        dtype=np.float32,
+                    )
+    else:
+        print("This mode currently is not supported")
