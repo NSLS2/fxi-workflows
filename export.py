@@ -14,6 +14,14 @@ from prefect import task, flow, get_run_logger
 from prefect.blocks.system import Secret
 from tiled.client import from_profile
 
+from multiprocessing.pool import ThreadPool
+import dask
+
+
+num_concurrent_workers = 4
+dask.config.set(pool=ThreadPool(num_concurrent_workers))
+
+
 try:
     api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
     tiled_client = from_profile("nsls2", api_key=api_key)["fxi"]
