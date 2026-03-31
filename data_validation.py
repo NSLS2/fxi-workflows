@@ -4,6 +4,13 @@ from prefect import flow, get_run_logger, task
 from prefect.blocks.system import Secret
 from tiled.client import from_profile
 
+from multiprocessing.pool import ThreadPool
+import dask
+
+
+num_concurrent_workers = 4
+dask.config.set(pool=ThreadPool(num_concurrent_workers))
+
 
 @task(retries=2, retry_delay_seconds=10)
 def read_all_streams(uid, beamline_acronym="fxi"):
