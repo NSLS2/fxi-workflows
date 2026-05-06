@@ -17,6 +17,7 @@ from prefect.blocks.system import Secret
 from prefect.context import FlowRunContext
 
 from tiled.client import from_profile, from_uri
+from data_validation import get_run
 
 CATALOG_NAME = "fxi"
 
@@ -42,10 +43,7 @@ def slack(func):
         uid = stop_doc["run_start"]
 
         # Get the scan_id.
-        api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
-        tiled_client = from_profile("nsls2", api_key=api_key)[CATALOG_NAME]
-        tiled_client_raw = tiled_client["raw"]
-        scan_id = tiled_client_raw[uid].start["scan_id"]
+        scan_id = get_run(uid).start["scan_id"]
 
         # Send a message to mon-bluesky if bluesky-run failed.
         if stop_doc.get("exit_status") == "fail":
