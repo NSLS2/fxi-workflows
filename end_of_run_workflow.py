@@ -98,12 +98,6 @@ def end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=None):
     tiled_client = from_uri("https://tiled.nsls2.bnl.gov")[CATALOG_NAME]
     tiled_client_fxi = tiled_client["raw"]
 
-    # Override the tiled clients in the export module so export functions use them.
-    import export as export_module
-    export_module.tiled_client = tiled_client
-    export_module.tiled_client_fxi = tiled_client_fxi
-    export_module.tiled_client_processed = tiled_client["sandbox"]
-
     # Parse input: scan_id range (e.g., "12345-12350"), scan_id (int), or uid (string).
     range_match = re.match(r"^(\d+)-(\d+)$", scan_id_or_uid_or_range)
     if range_match:
