@@ -13,10 +13,9 @@ from export import export
 import traceback
 
 from prefect.blocks.notifications import SlackWebhook
-from prefect.blocks.system import Secret
 from prefect.context import FlowRunContext
 
-from tiled.client import from_profile, from_uri
+from tiled.client import from_uri
 from data_validation import get_run
 
 CATALOG_NAME = "fxi"
@@ -117,7 +116,8 @@ def end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=None):
             keys = [scan_id_or_uid_or_range]
 
     for key in keys:
-        start_doc = tiled_client_fxi[key].start
+        run = tiled_client_fxi[key]
+        start_doc = run.start
         uid = start_doc["uid"]
         scan_id = start_doc["scan_id"]
         scan_type = start_doc["plan_name"]
@@ -129,7 +129,7 @@ def end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=None):
         filepath.mkdir(parents=True, exist_ok=True)
 
         logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
-        export_module.export_scan(uid, filepath=filepath)
+        export_module.export_scan(uid, run, filepath=filepath)
         logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
         print(f"\nExport complete: {filepath}/{scan_type}_id_{scan_id}.h5")
 

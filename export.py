@@ -11,26 +11,13 @@ from pathlib import Path
 from PIL import Image
 from prefect import task, flow, get_run_logger
 
-from prefect.blocks.system import Secret
-from tiled.client import from_profile
-
 from multiprocessing.pool import ThreadPool
 import dask
+from data_validation import get_run
 
 
 num_concurrent_workers = 4
 dask.config.set(pool=ThreadPool(num_concurrent_workers))
-
-
-try:
-    api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
-    tiled_client = from_profile("nsls2", api_key=api_key)["fxi"]
-    tiled_client_fxi = tiled_client["raw"]
-    tiled_client_processed = tiled_client["sandbox"]
-except Exception:
-    tiled_client = None
-    tiled_client_fxi = None
-    tiled_client_processed = None
 
 
 def _get_logger():
@@ -42,21 +29,22 @@ def _get_logger():
 
 
 @task
-def run_export_fxi(uid):
-    start_doc = tiled_client_fxi[uid].start
+def run_export_fxi(uid, api_key=None):
+    run = get_run(uid, api_key=api_key)
+    start_doc = run.start
     scan_id = start_doc["scan_id"]
     scan_type = start_doc["plan_name"]
     logger = _get_logger()
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
     output_directory = lookup_directory(start_doc) / "exports"
-    export_scan(uid, filepath=output_directory)
+    export_scan(uid, run=run, filepath=output_directory)
     logger.info(f"{output_directory =}")
 
 
 @flow
-def export(uid):
-    run_export_fxi(uid)
+def export(uid, api_key=None):
+    run_export_fxi(uid, api_key=api_key)
 
 
 def lookup_directory(start_doc):
@@ -192,11 +180,10 @@ def bin_ndarray(ndarray, new_shape=None, operation="mean"):
     return ndarray
 
 
-def export_scan(uid, binning=4, filepath=""):
+def export_scan(uid, run, binning=4, filepath=""):
     # raster_2d_2 scan calls export_raster_2D function even though export_raster_2D_2 function exists.
     # Legacy functions do not exist yet.
     # tiled_client = databroker.from_profile("nsls2", username=None)["fxi"]["raw"]
-    run = tiled_client_fxi[uid]
     scan_type = run.start["plan_name"]
     export_function = (
         f"export_{scan_type}_legacy" if is_legacy(run) else f"export_{scan_type}"
