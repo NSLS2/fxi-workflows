@@ -78,10 +78,10 @@ def log_completion(uid):
 
 @flow
 @slack
-def end_of_run_workflow(stop_doc):
+def end_of_run_workflow(stop_doc, api_key=None):
     uid = stop_doc["run_start"]
     # general_data_validation(uid)
-    export(uid)
+    export(uid, api_key=api_key)
     log_completion(uid)
 
 
