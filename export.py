@@ -29,7 +29,7 @@ def _get_logger():
 
 
 @task
-def run_export_fxi(uid, api_key=None):
+def run_export_fxi(uid, api_key=None, dry_run=False):
     run = get_run(uid, api_key=api_key)
     start_doc = run.start
     scan_id = start_doc["scan_id"]
@@ -38,13 +38,13 @@ def run_export_fxi(uid, api_key=None):
     logger.info(f"Scan ID: {scan_id}")
     logger.info(f"Scan Type: {scan_type}")
     output_directory = lookup_directory(start_doc) / "exports"
-    export_scan(uid, run=run, filepath=output_directory)
+    export_scan(uid, run=run, filepath=output_directory, dry_run=dry_run)
     logger.info(f"{output_directory =}")
 
 
 @flow
-def export(uid, api_key=None):
-    run_export_fxi(uid, api_key=api_key)
+def export(uid, api_key=None, dry_run=False):
+    run_export_fxi(uid, api_key=api_key, dry_run=dry_run)
 
 
 def lookup_directory(start_doc):
@@ -180,7 +180,7 @@ def bin_ndarray(ndarray, new_shape=None, operation="mean"):
     return ndarray
 
 
-def export_scan(uid, run, binning=4, filepath=""):
+def export_scan(uid, run, binning=4, filepath="", dry_run=False):
     # raster_2d_2 scan calls export_raster_2D function even though export_raster_2D_2 function exists.
     # Legacy functions do not exist yet.
     # tiled_client = databroker.from_profile("nsls2", username=None)["fxi"]["raw"]
