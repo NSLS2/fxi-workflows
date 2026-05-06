@@ -193,10 +193,10 @@ def export_scan(uid, run, binning=4, filepath="", dry_run=False):
         raise RuntimeError(
             f"Export function {export_function} for scan type {scan_type} not found."
         )
-    globals()[export_function](run, binning=binning, filepath=filepath)
+    globals()[export_function](run, binning=binning, filepath=filepath, dry_run=dry_run)
 
 
-def export_tomo_scan(run, filepath="", **kwargs):
+def export_tomo_scan(run, filepath="", dry_run=False, **kwargs):
     det_name = run.start["detectors"][0]
     scan_type = "tomo_scan"
     scan_id = run.start["scan_id"]
@@ -217,20 +217,24 @@ def export_tomo_scan(run, filepath="", **kwargs):
     img_angle = np.linspace(angle_i, angle_e, angle_n)
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=img_bkg)
-        hf.create_dataset("img_dark", data=img_dark)
-        hf.create_dataset("img_bkg_avg", data=img_bkg_avg.astype(np.float32))
-        hf.create_dataset("img_dark_avg", data=img_dark_avg.astype(np.float32))
-        hf.create_dataset("img_tomo", data=img_tomo)
-        hf.create_dataset("angle", data=img_angle)
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=img_bkg)
+            hf.create_dataset("img_dark", data=img_dark)
+            hf.create_dataset("img_bkg_avg", data=img_bkg_avg.astype(np.float32))
+            hf.create_dataset("img_dark_avg", data=img_dark_avg.astype(np.float32))
+            hf.create_dataset("img_tomo", data=img_tomo)
+            hf.create_dataset("angle", data=img_angle)
 
 
-def export_fly_scan(run, filepath, **kwargs):
+def export_fly_scan(run, filepath, dry_run=False, **kwargs):
     """Export fly scan data to HDF5.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -280,29 +284,33 @@ def export_fly_scan(run, filepath, **kwargs):
     img_angle = img_angle[:id_stop]
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=int(scan_id))
-        hf.create_dataset("scan_time", data=scan_time)
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.uint16))
-        hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.uint16))
-        hf.create_dataset("img_bkg_avg", data=np.array(img_bkg_avg, dtype=np.float32))
-        hf.create_dataset("img_dark_avg", data=np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset("img_tomo", data=np.array(img_tomo, dtype=np.uint16))
-        hf.create_dataset("angle", data=img_angle)
-        hf.create_dataset("x_ini", data=x_pos)
-        hf.create_dataset("y_ini", data=y_pos)
-        hf.create_dataset("z_ini", data=z_pos)
-        hf.create_dataset("r_ini", data=r_pos)
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=pxl_sz)
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=int(scan_id))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.uint16))
+            hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.uint16))
+            hf.create_dataset("img_bkg_avg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark_avg", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img_tomo", data=np.array(img_tomo, dtype=np.uint16))
+            hf.create_dataset("angle", data=img_angle)
+            hf.create_dataset("x_ini", data=x_pos)
+            hf.create_dataset("y_ini", data=y_pos)
+            hf.create_dataset("z_ini", data=z_pos)
+            hf.create_dataset("r_ini", data=r_pos)
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=pxl_sz)
 
 
-def export_fly_scan2(run, filepath="", **kwargs):
+def export_fly_scan2(run, filepath="", dry_run=False, **kwargs):
     det_name = run.start["detectors"][0]
     uid = run.start["uid"]
     note = run.start["note"]
@@ -329,29 +337,33 @@ def export_fly_scan2(run, filepath="", **kwargs):
     img_bkg_avg = np.median(img_bkg, axis=0, keepdims=True)
 
     filename = os.path.join(os.path.abspath(filepath), f"fly_scan_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=int(scan_id))
-        hf.create_dataset("scan_time", data=scan_time)
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.uint16))
-        hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.uint16))
-        hf.create_dataset("img_bkg_avg", data=np.array(img_bkg_avg, dtype=np.float32))
-        hf.create_dataset("img_dark_avg", data=np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset("img_tomo", data=np.array(img_tomo, dtype=np.uint16))
-        hf.create_dataset("angle", data=img_angle)
-        hf.create_dataset("x_ini", data=x_pos)
-        hf.create_dataset("y_ini", data=y_pos)
-        hf.create_dataset("z_ini", data=z_pos)
-        hf.create_dataset("r_ini", data=r_pos)
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=int(scan_id))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.uint16))
+            hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.uint16))
+            hf.create_dataset("img_bkg_avg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark_avg", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img_tomo", data=np.array(img_tomo, dtype=np.uint16))
+            hf.create_dataset("angle", data=img_angle)
+            hf.create_dataset("x_ini", data=x_pos)
+            hf.create_dataset("y_ini", data=y_pos)
+            hf.create_dataset("z_ini", data=z_pos)
+            hf.create_dataset("r_ini", data=r_pos)
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
 
 
-def export_xanes_scan(run, filepath="", **kwargs):
+def export_xanes_scan(run, filepath="", dry_run=False, **kwargs):
     """Export XANES scan data to HDF5.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -384,26 +396,31 @@ def export_xanes_scan(run, filepath="", **kwargs):
     img_xanes_norm[np.isinf(img_xanes_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("scan_time", data=scan_time)
-        hf.create_dataset("X_eng", data=eng_list)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
-        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=eng_list)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_xanes_scan2(run, filepath="", **kwargs):
-    export_xanes_scan(run, filepath=filepath, **kwargs)
+def export_xanes_scan2(run, filepath="", dry_run=False, **kwargs):
+    export_xanes_scan(run, filepath=filepath, dry_run=dry_run, **kwargs)
 
 
-def export_xanes_scan_img_only(run, filepath="", **kwargs):
+def export_xanes_scan_img_only(run, filepath="", dry_run=False, **kwargs):
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
@@ -430,22 +447,27 @@ def export_xanes_scan_img_only(run, filepath="", **kwargs):
     filename = os.path.join(
         os.path.abspath(filepath), f"{scan_type}_id_{scan_id}_img_only.h5"
     )
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("scan_time", data=scan_time)
-        hf.create_dataset("X_eng", data=eng_list)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
-        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing file {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=eng_list)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img_xanes", data=np.array(img_xanes_norm, dtype=np.float32))
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_z_scan(run, filepath="", **kwargs):
+def export_z_scan(run, filepath="", dry_run=False, **kwargs):
     """Export Z scan data to HDF5.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -475,22 +497,27 @@ def export_z_scan(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=img_bkg.astype(np.float32))
-        hf.create_dataset("img_dark", data=img_dark.astype(np.float32))
-        hf.create_dataset("img", data=img_zscan.astype(np.float32))
-        hf.create_dataset("img_norm", data=img_norm.astype(np.float32))
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=img_bkg.astype(np.float32))
+            hf.create_dataset("img_dark", data=img_dark.astype(np.float32))
+            hf.create_dataset("img", data=img_zscan.astype(np.float32))
+            hf.create_dataset("img_norm", data=img_norm.astype(np.float32))
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_z_scan2(run, filepath="", **kwargs):
+def export_z_scan2(run, filepath="", dry_run=False, **kwargs):
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
@@ -517,28 +544,32 @@ def export_z_scan2(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset(
-            "img_bkg",
-            data=np.array(img_bkg.astype(np.float32), dtype=np.float32),
-        )
-        hf.create_dataset("img_dark", data=img_dark.astype(np.float32))
-        hf.create_dataset("img", data=img_zscan.astype(np.float32))
-        hf.create_dataset(
-            "img_norm",
-            data=np.array(img_norm.astype(np.float32), dtype=np.float32),
-        )
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset(
+                "img_bkg",
+                data=np.array(img_bkg.astype(np.float32), dtype=np.float32),
+            )
+            hf.create_dataset("img_dark", data=img_dark.astype(np.float32))
+            hf.create_dataset("img", data=img_zscan.astype(np.float32))
+            hf.create_dataset(
+                "img_norm",
+                data=np.array(img_norm.astype(np.float32), dtype=np.float32),
+            )
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_test_scan(run, filepath="", **kwargs):
+def export_test_scan(run, filepath="", dry_run=False, **kwargs):
     """Export test scan data to HDF5.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -594,23 +625,28 @@ def export_test_scan(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("scan_time", data=scan_time)
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
-        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset("img", data=np.array(img, dtype=np.float32))
-        hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img", data=np.array(img, dtype=np.float32))
+            hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_test_scan2(run, filepath="", **kwargs):
+def export_test_scan2(run, filepath="", dry_run=False, **kwargs):
     """Export test scan 2 data to HDF5.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -654,23 +690,27 @@ def export_test_scan2(run, filepath="", **kwargs):
     img_norm[np.isinf(img_norm)] = 0
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("scan_time", data=scan_time)
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
-        hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset("img", data=np.array(img, dtype=np.float32))
-        hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img", data=np.array(img, dtype=np.float32))
+            hf.create_dataset("img_norm", data=np.array(img_norm, dtype=np.float32))
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_count(run, filepath="", **kwargs):
+def export_count(run, filepath="", dry_run=False, **kwargs):
     """
     load images (e.g. RE(count([Andor], 10)) ) and save to .h5 file
     """
@@ -689,17 +729,21 @@ def export_count(run, filepath="", **kwargs):
     img = get_img(run, det)
     scan_id = run.start["scan_id"]
     filename = os.path.join(filepath, f"count_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("img", data=img.astype(np.float32))
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("img", data=img.astype(np.float32))
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_delay_count(run, filepath="", **kwargs):
+def export_delay_count(run, filepath="", dry_run=False, **kwargs):
     """
     load images (e.g. RE(count([Andor], 10)) ) and save to .h5 file
     """
@@ -719,17 +763,21 @@ def export_delay_count(run, filepath="", **kwargs):
     img = get_img(run, det)
 
     filename = os.path.join(filepath, f"count_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("img", data=img.astype(np.float32))
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("img", data=img.astype(np.float32))
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_delay_scan(run, filepath="", **kwargs):
+def export_delay_scan(run, filepath="", dry_run=False, **kwargs):
     det = run.start["detectors"][0]
     scan_type = run.start["plan_name"]
     scan_id = run.start["scan_id"]
@@ -750,25 +798,29 @@ def export_delay_scan(run, filepath="", **kwargs):
         filename = os.path.join(
             os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5"
         )
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+        if dry_run:
+            print(f"Dry run: not running mkdir on {Path(filename).parent}")
+            print(f"Dry run: not writing {filename}")
+        else:
+            Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-        with h5py.File(filename, "w") as hf:
-            hf.create_dataset("img", data=np.array(img, dtype=np.float32))
-            hf.create_dataset("uid", data=uid)
-            hf.create_dataset("scan_id", data=scan_id)
-            hf.create_dataset("X_eng", data=x_eng)
-            hf.create_dataset("note", data=str(note))
-            hf.create_dataset("start", data=mot_start)
-            hf.create_dataset("stop", data=mot_stop)
-            hf.create_dataset("steps", data=mot_steps)
-            hf.create_dataset("motor", data=mot_name)
-            hf.create_dataset("Magnification", data=M)
-            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+            with h5py.File(filename, "w") as hf:
+                hf.create_dataset("img", data=np.array(img, dtype=np.float32))
+                hf.create_dataset("uid", data=uid)
+                hf.create_dataset("scan_id", data=scan_id)
+                hf.create_dataset("X_eng", data=x_eng)
+                hf.create_dataset("note", data=str(note))
+                hf.create_dataset("start", data=mot_start)
+                hf.create_dataset("stop", data=mot_stop)
+                hf.create_dataset("steps", data=mot_steps)
+                hf.create_dataset("motor", data=mot_name)
+                hf.create_dataset("Magnification", data=M)
+                hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
     else:
         print("no image stored in this scan")
 
 
-def export_multipos_count(run, filepath="", **kwargs):
+def export_multipos_count(run, filepath="", dry_run=False, **kwargs):
     scan_type = run.start["plan_name"]
     scan_id = run.start["scan_id"]
     uid = run.start["uid"]
@@ -800,19 +852,23 @@ def export_multipos_count(run, filepath="", **kwargs):
             img_group[i, j] = (tmp_img - img_dark_avg) / (tmp_bkg - img_dark_avg)
 
     filename = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
-        for i in range(num_of_position):
-            hf.create_dataset(f"img_pos{i + 1}", data=np.squeeze(img_group[i]))
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+            for i in range(num_of_position):
+                hf.create_dataset(f"img_pos{i + 1}", data=np.squeeze(img_group[i]))
 
 
-def export_grid2D_rel(run, filepath="", **kwargs):
+def export_grid2D_rel(run, filepath="", dry_run=False, **kwargs):
     scan_type = "grid2D_rel"
     scan_id = run.start["scan_id"]
     num1 = run.start["plan_args"]["num1"]
@@ -820,16 +876,23 @@ def export_grid2D_rel(run, filepath="", **kwargs):
     img = np.squeeze(np.array(list(run["primary"]["data"]["Andor_image"])))
 
     folder_name = os.path.join(os.path.abspath(filepath), f"{scan_type}_id_{scan_id}")
-    Path(folder_name).mkdir(parents=True, exist_ok=True)
+
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+    else:
+        Path(folder_name).mkdir(parents=True, exist_ok=True)
 
     for i in range(num1):
         for j in range(num2):
             filename = os.path.join(folder_name, f"_({i}{j}).tif")
-            img = Image.fromarray(img[i * num1 + j])
-            img.save(filename)
+            if dry_run:
+                print(f"Dry run: not saving {filename}")
+            else:
+                img = Image.fromarray(img[i * num1 + j])
+                img.save(filename)
 
 
-def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
+def export_raster_2D_2(run, binning=4, filepath="", dry_run=False, **kwargs):
     from skimage import io
 
     num_dark = 5
@@ -897,27 +960,36 @@ def export_raster_2D_2(run, binning=4, filepath="", **kwargs):
     fout_tiff = filepath + f"raster2D_scan_{scan_id}_binning_{binning}.tiff"
     fout_txt = filepath + f"raster2D_scan_{scan_id}_cord.txt"
     print(f"{pos_file_for_print}")
-    io.imsave(fout_tiff, np.array(img_patch_bin[0], dtype=np.float32))
-    with open(f"{fout_txt}", "w+") as f:
-        f.writelines(pos_file)
+    if dry_run:
+        print(f"Dry run: not saving {fout_tiff}")
+        print(f"Dry run: not writing {fout_txt}")
+    else:
+        io.imsave(fout_tiff, np.array(img_patch_bin[0], dtype=np.float32))
+        with open(f"{fout_txt}", "w+") as f:
+            f.writelines(pos_file)
     # tifffile.imsave(fout_tiff, np.array(img_patch_bin, dtype=np.float32))
     num_img = int(x_num) * int(y_num)
 
     folder_name = os.path.join(os.path.abspath(filepath), f"raster_scan_{scan_id}")
-    Path(folder_name).mkdir(parents=True, exist_ok=True)
     filename = os.path.join(folder_name, f"img_{i:02d}_binning_{binning}.h5")
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("img_patch", data=np.array(img_patch_bin, np.float32))
-        hf.create_dataset("img", data=np.array(img, np.float32))
-        hf.create_dataset("img_dark", data=np.array(img_dark_avg, np.float32))
-        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, np.float32))
-        hf.create_dataset("XEng", data=x_eng)
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(folder_name)}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(folder_name).mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("img_patch", data=np.array(img_patch_bin, np.float32))
+            hf.create_dataset("img", data=np.array(img, np.float32))
+            hf.create_dataset("img_dark", data=np.array(img_dark_avg, np.float32))
+            hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, np.float32))
+            hf.create_dataset("XEng", data=x_eng)
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_raster_2D(run, binning=4, filepath="", reverse=False, **kwargs):
+def export_raster_2D(run, binning=4, filepath="", reverse=False, dry_run=False, **kwargs):
     """Export raster 2D scan data to HDF5 and TIFF.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -1026,31 +1098,43 @@ def export_raster_2D(run, binning=4, filepath="", reverse=False, **kwargs):
         img_patch_bin = img_patch
         binning = 1
 
-    Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(os.path.abspath(filepath))}")
+    else:
+        Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
     fout_tiff = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_binning_{binning}.tiff")
     fout_txt = os.path.join(os.path.abspath(filepath), f"raster2D_scan_{scan_id}_cord.txt")
     print(f"{pos_file_for_print}")
-    with open(f"{fout_txt}", "w+") as f:
-        f.writelines(pos_file)
-    io.imsave(fout_tiff, np.array(img_patch_bin[0], dtype=np.float32))
+    if dry_run:
+        print(f"Dry run: not writing {fout_txt}")
+        print(f"Dry run: not writing {fout_tiff}")
+    else:
+        with open(f"{fout_txt}", "w+") as f:
+            f.writelines(pos_file)
+        io.imsave(fout_tiff, np.array(img_patch_bin[0], dtype=np.float32))
     num_img = int(x_num) * int(y_num)
     print(warn_msg)
 
     folder_name = os.path.join(os.path.abspath(filepath), f"raster_scan_{scan_id}")
-    Path(folder_name).mkdir(parents=True, exist_ok=True)
     filename = os.path.join(folder_name, f"img_{i:02d}_binning_{binning}.h5")
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("img_patch", data=np.array(img_patch_bin, np.float32))
-        hf.create_dataset("img", data=np.array(img, np.float32))
-        hf.create_dataset("img_dark", data=np.array(img_dark_avg, np.float32))
-        hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, np.float32))
-        hf.create_dataset("XEng", data=x_eng)
-        hf.create_dataset("Magnification", data=M)
-        hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(folder_name)}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(folder_name).mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("img_patch", data=np.array(img_patch_bin, np.float32))
+            hf.create_dataset("img", data=np.array(img, np.float32))
+            hf.create_dataset("img_dark", data=np.array(img_dark_avg, np.float32))
+            hf.create_dataset("img_bkg", data=np.array(img_bkg_avg, np.float32))
+            hf.create_dataset("XEng", data=x_eng)
+            hf.create_dataset("Magnification", data=M)
+            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_multipos_2D_xanes_scan2(run, filepath="", **kwargs):
+def export_multipos_2D_xanes_scan2(run, filepath="", dry_run=False, **kwargs):
     """Export multipos 2D XANES scan 2 data to HDF5.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -1090,7 +1174,10 @@ def export_multipos_2D_xanes_scan2(run, filepath="", **kwargs):
     img_xanes = img_xanes[:id_end]
     eng_list = eng_list[:id_end]
 
-    Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(os.path.abspath(filepath))}")
+    else:
+        Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
 
     for j in range(num_pos):
         img = img_xanes[j::num_pos]
@@ -1099,23 +1186,26 @@ def export_multipos_2D_xanes_scan2(run, filepath="", **kwargs):
         filename = os.path.join(os.path.abspath(filepath), name)
 
         try:
-            print(f"saving {filename}")
-            with h5py.File(filename, "w") as hf:
-                hf.create_dataset("uid", data=uid)
-                hf.create_dataset("scan_id", data=scan_id)
-                hf.create_dataset("note", data=str(note))
-                hf.create_dataset("scan_time", data=scan_time)
-                hf.create_dataset("X_eng", data=eng_list)
-                hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
-                hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
-                hf.create_dataset("img_xanes", data=np.array(img_n, dtype=np.float32))
-                hf.create_dataset("Magnification", data=M)
-                hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+            if dry_run:
+                print(f"Dry run: Not saving {filename}")
+            else:
+                print(f"saving {filename}")
+                with h5py.File(filename, "w") as hf:
+                    hf.create_dataset("uid", data=uid)
+                    hf.create_dataset("scan_id", data=scan_id)
+                    hf.create_dataset("note", data=str(note))
+                    hf.create_dataset("scan_time", data=scan_time)
+                    hf.create_dataset("X_eng", data=eng_list)
+                    hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
+                    hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
+                    hf.create_dataset("img_xanes", data=np.array(img_n, dtype=np.float32))
+                    hf.create_dataset("Magnification", data=M)
+                    hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
         except Exception as err:
             print(err)
 
 
-def export_multipos_2D_xanes_scan3(run, filepath="", **kwargs):
+def export_multipos_2D_xanes_scan3(run, filepath="", dry_run=False, **kwargs):
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
     M = (DetU_z_pos / zp_z_pos - 1) * 10.0
@@ -1146,29 +1236,35 @@ def export_multipos_2D_xanes_scan3(run, filepath="", **kwargs):
     for i in range(num_eng):
         for j in range(num_pos):
             img_xanes[j, i] = (img_xanes[j, i] - img_dark) / (img_bkg[i] - img_dark)
-    Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(os.path.abspath(filepath))}")
+    else:
+        Path(os.path.abspath(filepath)).mkdir(parents=True, exist_ok=True)
 
     for j in range(num_pos):
         filename = os.path.join(
             os.path.abspath(filepath), f"{scan_type}_id_{scan_id}_pos_{j}.h5"
         )
 
-        with h5py.File(filename, "w") as hf:
-            hf.create_dataset("uid", data=uid)
-            hf.create_dataset("scan_id", data=scan_id)
-            hf.create_dataset("note", data=str(note))
-            hf.create_dataset("scan_time", data=scan_time)
-            hf.create_dataset("X_eng", data=eng_list)
-            hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
-            hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
-            hf.create_dataset(
-                "img_xanes", data=np.array(img_xanes[j], dtype=np.float32)
-            )
-            hf.create_dataset("Magnification", data=M)
-            hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
+        if dry_run:
+            print(f"Not writing {filename}")
+        else:
+            with h5py.File(filename, "w") as hf:
+                hf.create_dataset("uid", data=uid)
+                hf.create_dataset("scan_id", data=scan_id)
+                hf.create_dataset("note", data=str(note))
+                hf.create_dataset("scan_time", data=scan_time)
+                hf.create_dataset("X_eng", data=eng_list)
+                hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.float32))
+                hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.float32))
+                hf.create_dataset(
+                    "img_xanes", data=np.array(img_xanes[j], dtype=np.float32)
+                )
+                hf.create_dataset("Magnification", data=M)
+                hf.create_dataset("Pixel Size", data=str(pxl_sz) + "nm")
 
 
-def export_user_fly_only(run, filepath="", **kwargs):
+def export_user_fly_only(run, filepath="", dry_run=False, **kwargs):
     uid = run.start["uid"]
     note = run.start["note"]
     scan_id = run.start["scan_id"]
@@ -1245,28 +1341,33 @@ def export_user_fly_only(run, filepath="", **kwargs):
     img_tomo = imgs[: pos2 - chunk_size]  # tomo images
 
     filename = os.path.join(os.path.abspath(filepath), f"fly_scan_id_{scan_id}.h5")
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-    with h5py.File(filename, "w") as hf:
-        hf.create_dataset("note", data=str(note))
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("scan_id", data=int(scan_id))
-        hf.create_dataset("scan_time", data=scan_time)
-        hf.create_dataset("X_eng", data=x_eng)
-        hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.uint16))
-        hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.uint16))
-        hf.create_dataset("img_bkg_avg", data=np.array(img_bkg_avg, dtype=np.float32))
-        hf.create_dataset("img_dark_avg", data=np.array(img_dark_avg, dtype=np.float32))
-        hf.create_dataset("img_tomo", data=np.array(img_tomo, dtype=np.uint16))
-        hf.create_dataset("angle", data=img_angle)
-        hf.create_dataset("x_ini", data=x_pos)
-        hf.create_dataset("y_ini", data=y_pos)
-        hf.create_dataset("z_ini", data=z_pos)
-        hf.create_dataset("r_ini", data=r_pos)
+    if dry_run:
+        print(f"Dry run: not running mkdir on {Path(filename).parent}")
+        print(f"Dry run: not writing {filename}")
+    else:
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filename, "w") as hf:
+            hf.create_dataset("note", data=str(note))
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("scan_id", data=int(scan_id))
+            hf.create_dataset("scan_time", data=scan_time)
+            hf.create_dataset("X_eng", data=x_eng)
+            hf.create_dataset("img_bkg", data=np.array(img_bkg, dtype=np.uint16))
+            hf.create_dataset("img_dark", data=np.array(img_dark, dtype=np.uint16))
+            hf.create_dataset("img_bkg_avg", data=np.array(img_bkg_avg, dtype=np.float32))
+            hf.create_dataset("img_dark_avg", data=np.array(img_dark_avg, dtype=np.float32))
+            hf.create_dataset("img_tomo", data=np.array(img_tomo, dtype=np.uint16))
+            hf.create_dataset("angle", data=img_angle)
+            hf.create_dataset("x_ini", data=x_pos)
+            hf.create_dataset("y_ini", data=y_pos)
+            hf.create_dataset("z_ini", data=z_pos)
+            hf.create_dataset("r_ini", data=r_pos)
 
 
 def export_scan_change_expo_time(
-    run, filepath="", save_range_x=[], save_range_y=[], **kwargs
+    run, filepath="", save_range_x=[], save_range_y=[], dry_run=False, **kwargs
 ):
     from skimage import io
 
@@ -1274,9 +1375,15 @@ def export_scan_change_expo_time(
     filepath += f"scan_{scan_id}/"
     filepath_t1 = filepath + "t1/"
     filepath_t2 = filepath + "t2/"
-    os.makedirs(filepath, exist_ok=True, mode=0o777)
-    os.makedirs(filepath_t1, exist_ok=True, mode=0o777)
-    os.makedirs(filepath_t2, exist_ok=True, mode=0o777)
+    
+    if dry_run:
+        print(f"Dry run: not running makedirs on {filepath}")
+        print(f"Dry run: not running makedirs on {filepath_t1}")
+        print(f"Dry run: not running makedirs on {filepath_t2}")
+    else:
+        os.makedirs(filepath, exist_ok=True, mode=0o777)
+        os.makedirs(filepath_t1, exist_ok=True, mode=0o777)
+        os.makedirs(filepath_t2, exist_ok=True, mode=0o777)
 
     zp_z_pos = run["baseline"]["data"]["zp_z"][1].item()
     DetU_z_pos = run["baseline"]["data"]["DetU_z"][1].item()
@@ -1349,20 +1456,27 @@ def export_scan_change_expo_time(
                 save_range_x[0] : save_range_x[1],
                 save_range_y[0] : save_range_y[1],
             ]
-            io.imsave(fsave_t1, im1.astype(np.float32))
-            io.imsave(fsave_t2, im2.astype(np.float32))
-    with h5py.File(filepath, "w") as hf:
-        hf.create_dataset("scan_id", data=scan_id)
-        hf.create_dataset("scan_type", data=scan_type)
-        hf.create_dataset("uid", data=uid)
-        hf.create_dataset("pxl_sz", data=pxl_sz)
-        hf.create_dataset("note", data=note)
-        hf.create_dataset("XEng", data=x_eng)
-        hf.create_dataset("pos_x", data=pos_x)
-        hf.create_dataset("pos_y", data=pos_y)
+            if dry_run:
+                print(f"Dry run: not writing {fsave_t1}")
+                print(f"Dry run: not writing {fsave_t2}")
+            else:
+                io.imsave(fsave_t1, im1.astype(np.float32))
+                io.imsave(fsave_t2, im2.astype(np.float32))
+    if dry_run:
+        print(f"Dry run: not writing {filepath}")
+    else:
+        with h5py.File(filepath, "w") as hf:
+            hf.create_dataset("scan_id", data=scan_id)
+            hf.create_dataset("scan_type", data=scan_type)
+            hf.create_dataset("uid", data=uid)
+            hf.create_dataset("pxl_sz", data=pxl_sz)
+            hf.create_dataset("note", data=note)
+            hf.create_dataset("XEng", data=x_eng)
+            hf.create_dataset("pos_x", data=pos_x)
+            hf.create_dataset("pos_y", data=pos_y)
 
 
-def export_tomo_zfly(run, filepath="", **kwargs):
+def export_tomo_zfly(run, filepath="", dry_run=False, **kwargs):
     """Export tomo zfly scan data to HDF5.
 
     Note: The exporter in the profile code calls write_lakeshore_to_file() to record
@@ -1442,102 +1556,106 @@ def export_tomo_zfly(run, filepath="", **kwargs):
                         os.path.abspath(filepath),
                         f"{scan_type}_id_{scan_id}-{str(ii).zfill(3)}.h5",
                     )
-                Path(fname).parent.mkdir(parents=True, exist_ok=True)
+                if dry_run:
+                    print(f"Dry run: not running mkdir on {Path(fname).parent}")
+                    print(f"Dry run: not writing {fname}")
+                else:
+                    Path(fname).parent.mkdir(parents=True, exist_ok=True)
 
-                with h5py.File(fname, "w") as hf:
-                    hl00 = hf.create_group("Experiment")
-                    hl01 = hf.create_group("Exchange")
+                    with h5py.File(fname, "w") as hf:
+                        hl00 = hf.create_group("Experiment")
+                        hl01 = hf.create_group("Exchange")
 
-                    hl00.create_dataset("scan mode", data=scan_mode)
-                    hl00.create_dataset("detector", data=det_name)
-                    hl00.create_dataset("X_eng (keV)", data=x_eng)
-                    hl00.create_dataset("exposure time (sec)", data=exp_t)
-                    hl00.create_dataset("acquisition period (sec)", data=acq_period)
-                    hl00.create_dataset("slew velocity (deg/sec)", data=rot_velo)
-                    hl00.create_dataset("slew acceleration (sec)", data=rot_acceleration)
-                    hl00.create_dataset("start angle (deg)", data=ang_start)
-                    hl00.create_dataset("end angle (deg)", data=ang_end)
-                    hl00.create_dataset("filters", data=flts)
-                    hl00.create_dataset("binning", data=binning)
-                    hl00.create_dataset("sleep (sec)", data=sleep)
-                    hl00.create_dataset("number of swings", data=num_swing)
-                    hl00.create_dataset("swing #", data=ii)
-                    hl00.create_dataset("note", data=str(note))
-                    hl00.create_dataset("uid", data=uid)
-                    hl00.create_dataset("scan_id", data=int(scan_id))
-                    hl00.create_dataset("scan_time", data=scan_time)
-                    hl00.create_dataset("x_ini", data=x_pos)
-                    hl00.create_dataset("y_ini", data=y_pos)
-                    hl00.create_dataset("z_ini", data=z_pos)
-                    hl00.create_dataset("r_ini", data=r_pos)
-                    hl00.create_dataset("Magnification", data=M)
-                    hl00.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
+                        hl00.create_dataset("scan mode", data=scan_mode)
+                        hl00.create_dataset("detector", data=det_name)
+                        hl00.create_dataset("X_eng (keV)", data=x_eng)
+                        hl00.create_dataset("exposure time (sec)", data=exp_t)
+                        hl00.create_dataset("acquisition period (sec)", data=acq_period)
+                        hl00.create_dataset("slew velocity (deg/sec)", data=rot_velo)
+                        hl00.create_dataset("slew acceleration (sec)", data=rot_acceleration)
+                        hl00.create_dataset("start angle (deg)", data=ang_start)
+                        hl00.create_dataset("end angle (deg)", data=ang_end)
+                        hl00.create_dataset("filters", data=flts)
+                        hl00.create_dataset("binning", data=binning)
+                        hl00.create_dataset("sleep (sec)", data=sleep)
+                        hl00.create_dataset("number of swings", data=num_swing)
+                        hl00.create_dataset("swing #", data=ii)
+                        hl00.create_dataset("note", data=str(note))
+                        hl00.create_dataset("uid", data=uid)
+                        hl00.create_dataset("scan_id", data=int(scan_id))
+                        hl00.create_dataset("scan_time", data=scan_time)
+                        hl00.create_dataset("x_ini", data=x_pos)
+                        hl00.create_dataset("y_ini", data=y_pos)
+                        hl00.create_dataset("z_ini", data=z_pos)
+                        hl00.create_dataset("r_ini", data=r_pos)
+                        hl00.create_dataset("Magnification", data=M)
+                        hl00.create_dataset("Pixel Size", data=str(str(pxl_sz) + "nm"))
 
-                    if scan_mode == 0:
-                        if dark is None:
-                            hl01.create_dataset("dark", data="None")
-                        else:
-                            hl01.create_dataset(
-                                "dark",
-                                data=np.array(dark[ii], dtype=np.uint16),
-                                dtype=np.uint16,
-                            )
+                        if scan_mode == 0:
+                            if dark is None:
+                                hl01.create_dataset("dark", data="None")
+                            else:
+                                hl01.create_dataset(
+                                    "dark",
+                                    data=np.array(dark[ii], dtype=np.uint16),
+                                    dtype=np.uint16,
+                                )
 
-                        if flat is None:
-                            hl01.create_dataset("flat", data="None")
-                        else:
-                            hl01.create_dataset(
-                                "flat",
-                                data=np.array(flat[ii], dtype=np.uint16),
-                                dtype=np.uint16,
-                            )
-                    elif scan_mode == 1:
-                        if dark is None:
-                            hl01.create_dataset("dark", data="None")
-                        else:
-                            hl01.create_dataset(
-                                "dark",
-                                data=np.squeeze(np.array(dark, dtype=np.uint16)),
-                                dtype=np.uint16,
-                            )
+                            if flat is None:
+                                hl01.create_dataset("flat", data="None")
+                            else:
+                                hl01.create_dataset(
+                                    "flat",
+                                    data=np.array(flat[ii], dtype=np.uint16),
+                                    dtype=np.uint16,
+                                )
+                        elif scan_mode == 1:
+                            if dark is None:
+                                hl01.create_dataset("dark", data="None")
+                            else:
+                                hl01.create_dataset(
+                                    "dark",
+                                    data=np.squeeze(np.array(dark, dtype=np.uint16)),
+                                    dtype=np.uint16,
+                                )
 
-                        if flat is None:
-                            hl01.create_dataset("flat", data="None")
-                        else:
-                            hl01.create_dataset(
-                                "flat",
-                                data=np.squeeze(np.array(flat, dtype=np.uint16)),
-                                dtype=np.uint16,
-                            )
+                            if flat is None:
+                                hl01.create_dataset("flat", data="None")
+                            else:
+                                hl01.create_dataset(
+                                    "flat",
+                                    data=np.squeeze(np.array(flat, dtype=np.uint16)),
+                                    dtype=np.uint16,
+                                )
 
-                    td = hl01.create_dataset(
-                        "data", shape=data_shp[1:], dtype=np.uint16
-                    )
-                    for jj in range(int(np.ceil(data_shp[1] / 1000.0))):
-                        td[jj * 1000 : min((jj + 1) * 1000, data_shp[1]), :] = np.array(
-                            data[ii, jj * 1000 : min((jj + 1) * 1000, data_shp[1]), :],
-                            dtype=np.uint16,
+                        td = hl01.create_dataset(
+                            "data", shape=data_shp[1:], dtype=np.uint16
                         )
+                        for jj in range(int(np.ceil(data_shp[1] / 1000.0))):
+                            td[jj * 1000 : min((jj + 1) * 1000, data_shp[1]), :] = np.array(
+                                data[ii, jj * 1000 : min((jj + 1) * 1000, data_shp[1]), :],
+                                dtype=np.uint16,
+                            )
 
-                    print(f"{data_shp=}, {angle.shape=}\n{a.shape=}, {z.shape=}")
-                    print(angle[ii].shape[0], data[ii].shape[0])
-                    if angle[ii].shape[0] > data[ii].shape[0]:
-                        a[ii] -= a[ii, 0]
-                        z[ii] -= z[ii, 0]
-                        ed = np.array(
-                            list(enumerate(np.diff(a[ii] - z[ii, : a[ii].shape[0]])))
+                        print(f"{data_shp=}, {angle.shape=}\n{a.shape=}, {z.shape=}")
+                        print(angle[ii].shape[0], data[ii].shape[0])
+                        if angle[ii].shape[0] > data[ii].shape[0]:
+                            a[ii] -= a[ii, 0]
+                            z[ii] -= z[ii, 0]
+                            ed = np.array(
+                                list(enumerate(np.diff(a[ii] - z[ii, : a[ii].shape[0]])))
+                            )
+                            ed = ed[np.argsort(ed[:, 1])]
+                            ga = np.ones(z[ii].shape[0], dtype=np.bool_)
+                            for kk in range(z[ii].shape[0] - a[ii].shape[0]):
+                                ga[int(ed[kk, 0])] = False
+                        else:
+                            ga = np.ones(angle[ii].shape[0], dtype=np.bool_)
+
+                        hl01.create_dataset(
+                            "angle",
+                            data=np.array(angle[ii][ga], dtype=np.float32),
+                            dtype=np.float32,
                         )
-                        ed = ed[np.argsort(ed[:, 1])]
-                        ga = np.ones(z[ii].shape[0], dtype=np.bool_)
-                        for kk in range(z[ii].shape[0] - a[ii].shape[0]):
-                            ga[int(ed[kk, 0])] = False
-                    else:
-                        ga = np.ones(angle[ii].shape[0], dtype=np.bool_)
-
-                    hl01.create_dataset(
-                        "angle",
-                        data=np.array(angle[ii][ga], dtype=np.float32),
-                        dtype=np.float32,
-                    )
     else:
         print("This mode currently is not supported")
