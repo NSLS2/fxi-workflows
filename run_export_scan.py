@@ -59,6 +59,10 @@ if len(sys.argv) < 2:
     print("Usage: exporter <scan_id | uid | scan_id_range> [output_dir]")
     sys.exit(1)
 
+# Clear Prefect Cloud env vars before importing prefect so the flow runs locally.
+os.environ.pop("PREFECT_API_URL", None)
+os.environ.pop("PREFECT_API_KEY", None)
+
 scan_id_or_uid_or_range = sys.argv[1]
 output_dir = sys.argv[2] if len(sys.argv) > 2 else None
 run_export_scan(scan_id_or_uid_or_range, output_dir=output_dir)
