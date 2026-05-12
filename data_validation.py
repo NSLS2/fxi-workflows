@@ -1,8 +1,11 @@
+import os
 import time
 
 from prefect import flow, get_run_logger, task
 from tiled.client import from_uri
 from dotenv import load_dotenv
+from multiprocessing.pool import ThreadPool
+import dask
 
 
 def get_api_key_from_env():
@@ -19,9 +22,6 @@ def get_run(uid, api_key=None):
     cl = from_uri("https://tiled.nsls2.bnl.gov", api_key=api_key)
     run = cl["fxi/raw"][uid]
     return run
-
-from multiprocessing.pool import ThreadPool
-import dask
 
 
 num_concurrent_workers = 4
