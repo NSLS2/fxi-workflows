@@ -13,10 +13,10 @@ from export import export
 import traceback
 
 from prefect.blocks.notifications import SlackWebhook
-from prefect.blocks.system import Secret
 from prefect.context import FlowRunContext
 
-from tiled.client import from_profile, from_uri
+from tiled.client import from_uri
+from data_validation import get_run
 
 CATALOG_NAME = "fxi"
 
@@ -42,10 +42,7 @@ def slack(func):
         uid = stop_doc["run_start"]
 
         # Get the scan_id.
-        api_key = Secret.load("tiled-fxi-api-key", _sync=True).get()
-        tiled_client = from_profile("nsls2", api_key=api_key)[CATALOG_NAME]
-        tiled_client_raw = tiled_client["raw"]
-        scan_id = tiled_client_raw[uid].start["scan_id"]
+        scan_id = get_run(uid).start["scan_id"]
 
         # Send a message to mon-bluesky if bluesky-run failed.
         if stop_doc.get("exit_status") == "fail":
@@ -81,10 +78,10 @@ def log_completion(uid):
 
 @flow
 @slack
-def end_of_run_workflow(stop_doc):
+def end_of_run_workflow(stop_doc, api_key=None, dry_run=False):
     uid = stop_doc["run_start"]
     # general_data_validation(uid)
-    export(uid)
+    export(uid, api_key=api_key, dry_run=dry_run)
     log_completion(uid)
 
 
@@ -101,12 +98,6 @@ def end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=None):
     tiled_client = from_uri("https://tiled.nsls2.bnl.gov")[CATALOG_NAME]
     tiled_client_fxi = tiled_client["raw"]
 
-    # Override the tiled clients in the export module so export functions use them.
-    import export as export_module
-    export_module.tiled_client = tiled_client
-    export_module.tiled_client_fxi = tiled_client_fxi
-    export_module.tiled_client_processed = tiled_client["sandbox"]
-
     # Parse input: scan_id range (e.g., "12345-12350"), scan_id (int), or uid (string).
     range_match = re.match(r"^(\d+)-(\d+)$", scan_id_or_uid_or_range)
     if range_match:
@@ -119,7 +110,8 @@ def end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=None):
             keys = [scan_id_or_uid_or_range]
 
     for key in keys:
-        start_doc = tiled_client_fxi[key].start
+        run = tiled_client_fxi[key]
+        start_doc = run.start
         uid = start_doc["uid"]
         scan_id = start_doc["scan_id"]
         scan_type = start_doc["plan_name"]
@@ -131,7 +123,7 @@ def end_of_run_workflow_local(scan_id_or_uid_or_range, output_dir=None):
         filepath.mkdir(parents=True, exist_ok=True)
 
         logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
-        export_module.export_scan(uid, filepath=filepath)
+        export_module.export_scan(uid, run, filepath=filepath)
         logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
         print(f"\nExport complete: {filepath}/{scan_type}_id_{scan_id}.h5")
 

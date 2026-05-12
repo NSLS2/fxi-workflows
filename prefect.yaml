@@ -30,8 +30,9 @@ deployments:
         image_pull_policy: Always
         network: slirp4netns
         volumes:
-          - /nsls2/data/fxi-new/proposals:/nsls2/data/fxi-new/proposals
           - /nsls2/software/etc/tiled:/nsls2/software/etc/tiled
+          - /nsls2/data/fxi-new/proposals:/nsls2/data/fxi-new/proposals
+          - /srv/prefect3-docker-worker-fxi/app:/srv
         container_create_kwargs:
           userns_mode: "keep-id:uid=402964,gid=402964" # workflow-fxi:workflow-fxi
         auto_remove: true
