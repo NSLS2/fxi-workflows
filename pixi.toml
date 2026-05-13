@@ -4,7 +4,7 @@ name = "prefect3 test"
 platforms = ["linux-64", "osx-64"]
 
 [tasks]
-exporter = "python end_of_run_workflow.py"
+exporter = "python run_export_scan.py"
 
 [dependencies]
 prefect = "3.*"
