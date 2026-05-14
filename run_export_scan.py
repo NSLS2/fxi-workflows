@@ -50,7 +50,8 @@ def run_export_scan(scan_id_or_uid_or_range, output_dir=None):
         filepath.mkdir(parents=True, exist_ok=True)
 
         logger.info(f"Exporting uid={uid} scan_id={scan_id} to {filepath}")
-        export_module.export_scan(uid, filepath=filepath)
+        run = tiled_client_fxi[uid]
+        export_module.export_scan(uid, run, filepath=filepath)
         logger.info(f"Export complete: uid={uid} scan_id={scan_id}")
         print(f"\nExport complete: {filepath}/{scan_type}_id_{scan_id}.h5")
 
